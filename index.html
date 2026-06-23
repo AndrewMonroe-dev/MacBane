@@ -1,1 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Apex">
+<meta name="theme-color" content="#0A0B0F">
+<title>Apex — Executive Intelligence Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#0A0B0F;
+  --panel:#131722;
+  --panel2:#1A1F2D;
+  --border:rgba(255,255,255,.05);
+  --border-strong:rgba(255,255,255,.09);
+  --blue:#3B82F6;
+  --cyan:#06B6D4;
+  --success:#10B981;
+  --warning:#F59E0B;
+  --danger:#EF4444;
+  --text:#FFFFFF;
+  --text2:#94A3B8;
+  --text3:#5B6677;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  height:100%;
+  overflow:hidden;
+}
+.mono{font-family:'JetBrains Mono',monospace;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:4px;}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.15);}
+
+/* ===== APP SHELL ===== */
+#app{display:grid;grid-template-columns:240px 1fr 320px;height:100vh;}
+@media (max-width:1200px){#app{grid-template-columns:220px 1fr 0px;}#rightPanel{display:none;}}
+
+/* ===== MOBILE / TABLET ===== */
+@media (max-width:860px){
+  html,body{overflow:auto;height:auto;}
+  #app{
+    display:flex;flex-direction:column;height:auto;min-height:100vh;
+  }
+  #sidebar{
+    order:2;
+    flex-direction:row;
+    position:fixed;bottom:0;left:0;right:0;
+    height:64px;padding:6px 4px;
+    border-right:none;border-top:1px solid var(--border);
+    z-index:40;background:rgba(19,23,34,.97);
+    overflow-x:auto;overflow-y:hidden;
+    align-items:center;
+  }
+  .brand,.navgroup-label,.sidebar-footer{display:none;}
+  .navitem{
+    flex-direction:column;gap:2px;font-size:9.5px;padding:6px 10px;min-width:58px;
+    text-align:center;flex-shrink:0;border-radius:10px;
+  }
+  .navitem.active::before{display:none;}
+  .navitem .ic{font-size:16px;}
+  #main{
+    order:1;padding:16px 14px 84px;overflow-y:visible;
+  }
+  #rightPanel{
+    display:block;order:3;
+    border-left:none;border-top:1px solid var(--border);
+    margin-bottom:64px;
+  }
+  .grid-4,.grid-3,.grid-2{grid-template-columns:repeat(2,1fr);}
+  .kpi-value{font-size:22px;}
+  .page-title{font-size:18px;}
+  .topbar{flex-direction:column;align-items:flex-start;}
+  .topbar-right{width:100%;justify-content:space-between;}
+  table.data{font-size:11.5px;}
+  .card{padding:14px;}
+  .modal{width:92vw;padding:18px;}
+}
+@media (max-width:480px){
+  .grid-4,.grid-3,.grid-2{grid-template-columns:1fr 1fr;}
+  .kpi-value{font-size:20px;}
+  .navitem{min-width:50px;font-size:9px;padding:6px 7px;}
+}
+
+/* ===== SIDEBAR ===== */
+#sidebar{
+  background:var(--panel);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  padding:18px 12px;
+}
+.brand{
+  display:flex;align-items:center;gap:10px;
+  padding:6px 10px 22px 10px;
+}
+.brand-mark{
+  width:30px;height:30px;border-radius:8px;
+  background:linear-gradient(135deg,var(--blue),var(--cyan));
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:14px;color:#06121f;
+  flex-shrink:0;
+}
+.brand-name{font-weight:700;font-size:15px;letter-spacing:.2px;}
+.brand-sub{font-size:10.5px;color:var(--text3);letter-spacing:.6px;text-transform:uppercase;margin-top:1px;}
+
+.navgroup-label{
+  font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;
+  padding:14px 10px 6px;font-weight:600;
+}
+.navitem{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 10px;border-radius:8px;
+  color:var(--text2);font-size:13.5px;font-weight:500;
+  cursor:pointer;transition:background .12s ease,color .12s ease;
+  position:relative;
+}
+.navitem:hover{background:rgba(255,255,255,.035);color:var(--text);}
+.navitem.active{background:rgba(59,130,246,.12);color:var(--text);}
+.navitem.active::before{
+  content:'';position:absolute;left:-12px;top:8px;bottom:8px;width:3px;
+  background:var(--blue);border-radius:0 3px 3px 0;
+}
+.navitem .ic{width:16px;height:16px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.navitem.active .ic svg{stroke:var(--blue);}
+
+.sidebar-footer{
+  margin-top:auto;border-top:1px solid var(--border);padding-top:12px;
+  display:flex;align-items:center;gap:10px;padding-left:10px;
+}
+.avatar{
+  width:30px;height:30px;border-radius:8px;background:var(--panel2);
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;
+  color:var(--cyan);border:1px solid var(--border-strong);
+}
+.user-name{font-size:12.5px;font-weight:600;}
+.user-role{font-size:10.5px;color:var(--text3);}
+
+/* ===== MAIN ===== */
+#main{overflow-y:auto;padding:22px 26px 60px;}
+.topbar{
+  display:flex;align-items:center;justify-content:between;justify-content:space-between;
+  margin-bottom:22px;flex-wrap:wrap;gap:10px;
+}
+.page-title{font-size:20px;font-weight:700;letter-spacing:-.2px;}
+.page-sub{font-size:12.5px;color:var(--text2);margin-top:2px;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.pill{
+  font-size:11px;font-weight:600;padding:5px 10px;border-radius:6px;
+  background:rgba(16,185,129,.12);color:var(--success);
+  display:flex;align-items:center;gap:6px;border:1px solid rgba(16,185,129,.2);
+}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--success);box-shadow:0 0 6px var(--success);}
+.btn{
+  background:var(--panel2);border:1px solid var(--border-strong);color:var(--text);
+  font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:8px;cursor:pointer;
+  transition:all .12s ease;display:inline-flex;align-items:center;gap:6px;
+}
+.btn:hover{border-color:rgba(255,255,255,.2);background:#1f2536;}
+.btn-primary{
+  background:linear-gradient(135deg,var(--blue),#2563eb);border:none;color:#fff;
+  box-shadow:0 4px 14px rgba(59,130,246,.25);
+}
+.btn-primary:hover{filter:brightness(1.08);}
+
+.section{display:none;}
+.section.active{display:block;animation:fadein .25s ease;}
+@keyframes fadein{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+/* ===== CARDS ===== */
+.grid{display:grid;gap:14px;}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+@media(max-width:1500px){.grid-4{grid-template-columns:repeat(2,1fr);}}
+
+.card{
+  background:linear-gradient(160deg,var(--panel) 0%, var(--panel2) 130%);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:18px;
+  position:relative;
+  overflow:hidden;
+  transition:border-color .15s ease, transform .15s ease;
+}
+.card:hover{border-color:var(--border-strong);}
+.card.lift:hover{transform:translateY(-2px);}
+
+.kpi-label{font-size:11.5px;color:var(--text2);font-weight:600;letter-spacing:.3px;display:flex;align-items:center;justify-content:space-between;}
+.kpi-value{font-size:28px;font-weight:700;margin-top:10px;letter-spacing:-.5px;font-family:'JetBrains Mono',monospace;}
+.kpi-foot{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:12px;font-weight:600;}
+.up{color:var(--success);}
+.down{color:var(--danger);}
+.neutral{color:var(--text2);}
+.kpi-icon{
+  position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+}
+
+.panel-title{font-size:14px;font-weight:700;margin-bottom:2px;}
+.panel-sub{font-size:11.5px;color:var(--text2);margin-bottom:16px;}
+.section-heading{font-size:15px;font-weight:700;margin:28px 0 14px;display:flex;align-items:center;gap:8px;}
+.section-heading .bar{width:3px;height:14px;background:var(--blue);border-radius:2px;}
+
+/* progress bar */
+.progress-track{height:7px;background:rgba(255,255,255,.06);border-radius:6px;overflow:hidden;margin-top:10px;}
+.progress-fill{height:100%;border-radius:6px;transition:width .4s ease;}
+
+/* goal cards */
+.goal-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:10px;}
+.goal-top{display:flex;align-items:flex-start;justify-content:space-between;}
+.goal-cat{font-size:10px;text-transform:uppercase;letter-spacing:.6px;font-weight:700;padding:3px 8px;border-radius:5px;}
+.goal-name{font-size:14.5px;font-weight:600;margin-top:8px;}
+.goal-meta{font-size:11.5px;color:var(--text2);margin-top:2px;}
+.goal-pct{font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.status-badge{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;display:inline-flex;align-items:center;gap:5px;}
+
+/* table */
+table.data{width:100%;border-collapse:collapse;font-size:12.5px;}
+table.data th{
+  text-align:left;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase;
+  letter-spacing:.4px;padding:9px 10px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--panel);
+}
+table.data td{padding:10px 10px;border-bottom:1px solid var(--border);color:var(--text);}
+table.data tr:hover td{background:rgba(255,255,255,.02);}
+
+/* tabs */
+.tabs{display:flex;gap:4px;background:var(--panel2);border-radius:10px;padding:4px;width:fit-content;margin-bottom:18px;}
+.tab{padding:7px 16px;border-radius:7px;font-size:12.5px;font-weight:600;color:var(--text2);cursor:pointer;}
+.tab.active{background:var(--blue);color:#fff;}
+
+/* right panel */
+#rightPanel{
+  background:var(--panel);border-left:1px solid var(--border);
+  padding:20px 16px;overflow-y:auto;
+}
+.insight-item{
+  background:var(--panel2);border:1px solid var(--border);border-radius:10px;
+  padding:12px 13px;margin-bottom:10px;
+}
+.insight-tag{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;}
+.insight-text{font-size:12.5px;color:var(--text);margin-top:6px;line-height:1.45;}
+.insight-time{font-size:10.5px;color:var(--text3);margin-top:7px;}
+
+.task-item{display:flex;align-items:flex-start;gap:9px;padding:9px 0;border-bottom:1px solid var(--border);}
+.task-item:last-child{border-bottom:none;}
+.task-check{width:15px;height:15px;border-radius:4px;border:1.5px solid var(--border-strong);flex-shrink:0;margin-top:2px;cursor:pointer;}
+.task-check.done{background:var(--success);border-color:var(--success);}
+.task-text{font-size:12.5px;}
+.task-text.done{color:var(--text3);text-decoration:line-through;}
+.task-meta{font-size:10.5px;color:var(--text3);margin-top:2px;}
+
+/* dropzone */
+.dropzone{
+  border:1.5px dashed var(--border-strong);border-radius:14px;padding:40px 20px;
+  text-align:center;cursor:pointer;transition:border-color .15s ease, background .15s ease;
+}
+.dropzone:hover, .dropzone.drag{border-color:var(--blue);background:rgba(59,130,246,.04);}
+.dropzone svg{stroke:var(--text2);}
+
+.chip{font-size:11px;font-weight:600;padding:4px 9px;border-radius:6px;background:var(--panel2);color:var(--text2);border:1px solid var(--border);}
+
+input,select{
+  background:var(--panel2);border:1px solid var(--border-strong);color:var(--text);
+  border-radius:8px;padding:8px 10px;font-size:12.5px;font-family:'Inter',sans-serif;
+}
+input:focus,select:focus{outline:none;border-color:var(--blue);}
+label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:block;margin-bottom:5px;}
+
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:50;
+}
+.modal-overlay.open{display:flex;}
+.modal{
+  background:var(--panel);border:1px solid var(--border-strong);border-radius:16px;
+  padding:24px;width:420px;max-width:90vw;
+}
+.close-x{position:absolute;top:16px;right:16px;cursor:pointer;color:var(--text2);}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ============ SIDEBAR ============ -->
+  <div id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">A</div>
+      <div>
+        <div class="brand-name">Apex</div>
+        <div class="brand-sub">Intelligence terminal</div>
+      </div>
+    </div>
+
+    <div class="navgroup-label">Workspace</div>
+    <div class="navitem active" data-route="dashboard">
+      <span class="ic">●</span> Dashboard
+    </div>
+    <div class="navitem" data-route="goals">
+      <span class="ic">◎</span> Goals
+    </div>
+    <div class="navitem" data-route="sales">
+      <span class="ic">▲</span> Sales metrics
+    </div>
+    <div class="navitem" data-route="distributors">
+      <span class="ic">◆</span> Distributors
+    </div>
+    <div class="navitem" data-route="accounts">
+      <span class="ic">▣</span> Accounts
+    </div>
+
+    <div class="navgroup-label">Data</div>
+    <div class="navitem" data-route="imports">
+      <span class="ic">⇩</span> Excel imports
+    </div>
+    <div class="navitem" data-route="reports">
+      <span class="ic">▤</span> Reports
+    </div>
+    <div class="navitem" data-route="insights">
+      <span class="ic">✦</span> Insights
+    </div>
+
+    <div class="navgroup-label">System</div>
+    <div class="navitem" data-route="settings">
+      <span class="ic">⚙</span> Settings
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="avatar">AM</div>
+      <div>
+        <div class="user-name">Andrew Monroe</div>
+        <div class="user-role">Area Sales Manager</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MAIN ============ -->
+  <div id="main">
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="section active" id="sec-dashboard">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Executive overview</div>
+          <div class="page-sub">Michigan territory · Delicato Family Wines · <span id="liveClock" class="mono"></span></div>
+        </div>
+        <div class="topbar-right">
+          <div class="pill"><span class="dot"></span> Live data</div>
+          <button class="btn" onclick="route('imports')">Import data</button>
+        </div>
+      </div>
+
+      <div class="grid grid-4" id="kpiRow"></div>
+
+      <div class="section-heading"><span class="bar"></span>Volume &amp; revenue trend</div>
+      <div class="card" style="height:300px;">
+        <canvas id="trendChart" role="img" aria-label="Monthly volume and revenue trend over the last 9 months"></canvas>
+      </div>
+
+      <div class="grid grid-2" style="margin-top:16px;">
+        <div class="card">
+          <div class="panel-title">Distribution by category</div>
+          <div class="panel-sub">9L case volume share, trailing 30 days</div>
+          <div style="height:220px;"><canvas id="catChart" role="img" aria-label="Donut chart of case volume by wine category"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="panel-title">Top accounts — feature activity</div>
+          <div class="panel-sub">Ranked by 9L case depletion, trailing 30 days</div>
+          <div style="height:220px;"><canvas id="acctChart" role="img" aria-label="Horizontal bar chart of top accounts by case depletion"></canvas></div>
+        </div>
+      </div>
+
+      <div class="section-heading"><span class="bar"></span>Goal progress snapshot</div>
+      <div class="grid grid-3" id="goalSnapshot"></div>
+    </div>
+
+    <!-- ===== GOALS ===== -->
+    <div class="section" id="sec-goals">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Goals</div>
+          <div class="page-sub">Professional, financial, fitness &amp; personal tracking</div>
+        </div>
+        <button class="btn btn-primary" onclick="openGoalModal()">+ New goal</button>
+      </div>
+      <div class="tabs" id="goalTabs">
+        <div class="tab active" data-cat="All">All</div>
+        <div class="tab" data-cat="Sales">Sales</div>
+        <div class="tab" data-cat="Financial">Financial</div>
+        <div class="tab" data-cat="Fitness">Fitness</div>
+        <div class="tab" data-cat="Health">Health</div>
+        <div class="tab" data-cat="Learning">Learning</div>
+        <div class="tab" data-cat="Personal">Personal</div>
+      </div>
+      <div id="goalList"></div>
+    </div>
+
+    <!-- ===== SALES METRICS ===== -->
+    <div class="section" id="sec-sales">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Sales metrics</div>
+          <div class="page-sub">Volume · revenue · PODs · display &amp; feature execution</div>
+        </div>
+      </div>
+      <div class="grid grid-4" id="salesKpis"></div>
+      <div class="section-heading"><span class="bar"></span>Volume by brand</div>
+      <div class="card" style="height:280px;">
+        <canvas id="brandChart" role="img" aria-label="Bar chart of 9L case volume by brand"></canvas>
+      </div>
+      <div class="section-heading"><span class="bar"></span>Chain performance</div>
+      <div class="card" style="overflow-x:auto;">
+        <table class="data" id="chainTable"></table>
+      </div>
+    </div>
+
+    <!-- ===== DISTRIBUTORS ===== -->
+    <div class="section" id="sec-distributors">
+      <div class="topbar">
+        <div><div class="page-title">Distributors</div><div class="page-sub">Alliance Beverage Distributing — execution scorecard</div></div>
+      </div>
+      <div class="grid grid-3" id="distCards"></div>
+      <div class="section-heading"><span class="bar"></span>Weighted scorecard</div>
+      <div class="card" style="overflow-x:auto;">
+        <table class="data" id="distTable"></table>
+      </div>
+    </div>
+
+    <!-- ===== ACCOUNTS ===== -->
+    <div class="section" id="sec-accounts">
+      <div class="topbar">
+        <div><div class="page-title">Accounts</div><div class="page-sub">Retail &amp; on-premise account directory</div></div>
+        <input id="acctSearch" placeholder="Search accounts..." style="width:220px;">
+      </div>
+      <div class="card" style="overflow-x:auto;">
+        <table class="data" id="acctTable"></table>
+      </div>
+    </div>
+
+    <!-- ===== EXCEL IMPORTS ===== -->
+    <div class="section" id="sec-imports">
+      <div class="topbar">
+        <div><div class="page-title">Excel imports</div><div class="page-sub">Upload .xlsx / .csv to map and ingest into the dashboard</div></div>
+      </div>
+      <div class="dropzone" id="dropzone">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke-width="1.6" style="margin:0 auto 10px;"><path d="M12 16V4M12 4l-4 4M12 4l4 4M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div style="font-weight:600;font-size:13.5px;">Drop a file or click to browse</div>
+        <div style="font-size:11.5px;color:var(--text2);margin-top:4px;">Accepts .xlsx, .xls, .csv — column mapping happens automatically</div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none;">
+      </div>
+
+      <div id="importPreviewWrap" style="display:none;margin-top:20px;">
+        <div class="section-heading"><span class="bar"></span>Column mapping</div>
+        <div class="card" id="mappingCard"></div>
+
+        <div class="section-heading"><span class="bar"></span>Preview <span class="chip" id="rowCountChip" style="margin-left:8px;"></span></div>
+        <div class="card" style="overflow-x:auto;max-height:340px;">
+          <table class="data" id="previewTable"></table>
+        </div>
+
+        <div style="margin-top:16px;display:flex;gap:10px;align-items:center;">
+          <input id="templateName" placeholder="Template name (e.g. Kroger weekly depletions)" style="width:280px;">
+          <button class="btn" onclick="saveTemplate()">Save as template</button>
+          <button class="btn btn-primary" onclick="confirmImport()">Confirm import</button>
+          <span id="importStatus" style="font-size:12px;color:var(--success);font-weight:600;"></span>
+        </div>
+      </div>
+
+      <div class="section-heading"><span class="bar"></span>Saved templates</div>
+      <div class="grid grid-3" id="templateList"></div>
+
+      <div class="section-heading"><span class="bar"></span>Import history</div>
+      <div class="card" style="overflow-x:auto;">
+        <table class="data" id="historyTable"></table>
+      </div>
+    </div>
+
+    <!-- ===== REPORTS ===== -->
+    <div class="section" id="sec-reports">
+      <div class="topbar">
+        <div><div class="page-title">Reports</div><div class="page-sub">Generated summaries ready to export</div></div>
+      </div>
+      <div class="grid grid-3" id="reportCards"></div>
+    </div>
+
+    <!-- ===== INSIGHTS ===== -->
+    <div class="section" id="sec-insights">
+      <div class="topbar">
+        <div><div class="page-title">Insights</div><div class="page-sub">All AI-generated observations across modules</div></div>
+      </div>
+      <div id="insightFull"></div>
+    </div>
+
+    <!-- ===== SETTINGS ===== -->
+    <div class="section" id="sec-settings">
+      <div class="topbar"><div><div class="page-title">Settings</div><div class="page-sub">Account, data sources &amp; preferences</div></div></div>
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="panel-title">Profile</div>
+          <div class="panel-sub">Executive identity</div>
+          <label class="field-label">Name</label>
+          <input value="Andrew Monroe" style="width:100%;margin-bottom:10px;">
+          <label class="field-label">Title</label>
+          <input value="Area Sales Manager — Michigan" style="width:100%;margin-bottom:10px;">
+          <label class="field-label">Company</label>
+          <input value="Delicato Family Wines" style="width:100%;">
+        </div>
+        <div class="card">
+          <div class="panel-title">Data sources</div>
+          <div class="panel-sub">Connected sync targets</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+            <span style="font-size:13px;">Google Sheets</span>
+            <span class="pill">Connect</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+            <span style="font-size:13px;">GitHub Pages deploy</span>
+            <span class="pill"><span class="dot"></span> Connected</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;">
+            <span style="font-size:13px;">Vercel (future)</span>
+            <span class="chip">Not configured</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ RIGHT PANEL ============ -->
+  <div id="rightPanel">
+    <div class="panel-title">AI insights</div>
+    <div class="panel-sub">Auto-generated, refreshed hourly</div>
+    <div id="insightFeed"></div>
+
+    <div class="panel-title" style="margin-top:24px;">Upcoming tasks</div>
+    <div class="panel-sub">Synced from account follow-ups</div>
+    <div id="taskFeed"></div>
+
+    <div class="panel-title" style="margin-top:24px;">Alerts</div>
+    <div class="panel-sub">Thresholds &amp; anomalies</div>
+    <div id="alertFeed"></div>
+  </div>
+
+</div>
+
+<!-- ============ GOAL MODAL ============ -->
+<div class="modal-overlay" id="goalModalOverlay">
+  <div class="modal">
+    <span class="close-x" onclick="closeGoalModal()">✕</span>
+    <div class="panel-title" style="margin-bottom:16px;">New goal</div>
+    <label class="field-label">Category</label>
+    <select id="newGoalCat" style="width:100%;margin-bottom:12px;">
+      <option>Professional</option><option>Sales</option><option>Financial</option>
+      <option>Fitness</option><option>Health</option><option>Learning</option><option>Personal</option>
+    </select>
+    <label class="field-label">Goal name</label>
+    <input id="newGoalName" style="width:100%;margin-bottom:12px;" placeholder="e.g. Hit 14,000 9L cases for the year">
+    <div style="display:flex;gap:10px;margin-bottom:12px;">
+      <div style="flex:1;"><label class="field-label">Target</label><input id="newGoalTarget" type="number" style="width:100%;"></div>
+      <div style="flex:1;"><label class="field-label">Current</label><input id="newGoalCurrent" type="number" style="width:100%;"></div>
+    </div>
+    <label class="field-label">Deadline</label>
+    <input id="newGoalDeadline" type="date" style="width:100%;margin-bottom:18px;">
+    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="addGoal()">Create goal</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   STATE
+   ============================================================ */
+const state = {
+  goals: [
+    {id:1,cat:'Sales',name:'Reach 15,200 9L cases — FY26',target:15200,current:11430,deadline:'2026-12-31'},
+    {id:2,cat:'Sales',name:'Open 40 new PODs in Kroger/Meijer',target:40,current:27,deadline:'2026-09-30'},
+    {id:3,cat:'Financial',name:'Max out 401k contribution',target:23500,current:14200,deadline:'2026-12-31'},
+    {id:4,cat:'Financial',name:'Emergency fund — 6 months expenses',target:36000,current:22000,deadline:'2027-01-01'},
+    {id:5,cat:'Fitness',name:'Vault Lifter program — full 10 months',target:10,current:6,deadline:'2026-11-01'},
+    {id:6,cat:'Fitness',name:'Deadlift 405 lb',target:405,current:365,deadline:'2026-10-15'},
+    {id:7,cat:'Health',name:'MEDAS score — average 11+/14',target:11,current:8.6,deadline:'2026-12-31'},
+    {id:8,cat:'Health',name:'Resting heart rate under 60bpm',target:60,current:64,deadline:'2026-09-01'},
+    {id:9,cat:'Personal',name:'DeWitt native garden — phase 2 planting',target:120,current:78,deadline:'2026-08-15'},
+    {id:10,cat:'Learning',name:'Complete advanced wine certification',target:4,current:2,deadline:'2027-03-01'},
+    {id:11,cat:'Professional',name:'Close out HealthPad medication-food module',target:1,current:0.7,deadline:'2026-07-15'},
+  ],
+  templates: [
+    {name:'Kroger weekly depletions',cols:['Account','Brand','9L Cases','Week Ending'],date:'2026-06-10'},
+    {name:'Spartan Nash monthly POD report',cols:['Store #','Item','POD Status','Region'],date:'2026-06-02'},
+  ],
+  importHistory: [
+    {file:'kroger_depletions_wk24.xlsx',rows:340,date:'2026-06-16',status:'Synced'},
+    {file:'meijer_pods_june.csv',rows:88,date:'2026-06-12',status:'Synced'},
+    {file:'total_wine_features.xlsx',rows:52,date:'2026-06-05',status:'Synced'},
+  ],
+  pendingImport: null
+};
+
+const KPI = [
+  {label:'9L case volume',value:'11,430',unit:'cases',change:'+4.2%',dir:'up',sub:'vs. last month'},
+  {label:'Revenue',value:'$1.84M',unit:'',change:'+6.8%',dir:'up',sub:'vs. last month'},
+  {label:'Active PODs',value:'1,247',unit:'',change:'+27',dir:'up',sub:'opened this quarter'},
+  {label:'Feature execution',value:'71%',unit:'',change:'-2.1%',dir:'down',sub:'of planned features'},
+];
+
+const COLORS = {blue:'#3B82F6',cyan:'#06B6D4',success:'#10B981',warning:'#F59E0B',danger:'#EF4444',text2:'#94A3B8'};
+
+/* ============================================================
+   ROUTER
+   ============================================================ */
+function route(name){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-'+name).classList.add('active');
+  document.querySelectorAll('.navitem').forEach(n=>n.classList.toggle('active', n.dataset.route===name));
+}
+document.querySelectorAll('.navitem').forEach(n=>n.addEventListener('click',()=>route(n.dataset.route)));
+
+/* ============================================================
+   CLOCK
+   ============================================================ */
+function tickClock(){
+  const d = new Date();
+  document.getElementById('liveClock').textContent = d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(tickClock,1000); tickClock();
+
+/* ============================================================
+   KPI ROW
+   ============================================================ */
+function iconBg(dir){
+  if(dir==='up') return 'background:rgba(16,185,129,.12);';
+  if(dir==='down') return 'background:rgba(239,68,68,.12);';
+  return 'background:rgba(148,163,184,.12);';
+}
+function renderKpis(){
+  const wrap = document.getElementById('kpiRow');
+  wrap.innerHTML = KPI.map(k=>`
+    <div class="card lift">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-foot ${k.dir==='up'?'up':'down'}">
+        ${k.dir==='up'?'▲':'▼'} ${k.change} <span class="neutral" style="font-weight:500;">${k.sub}</span>
+      </div>
+    </div>
+  `).join('');
+}
+renderKpis();
+
+/* sales page kpis (reuse) */
+document.getElementById('salesKpis').innerHTML = `
+  <div class="card"><div class="kpi-label">Volume MTD</div><div class="kpi-value">11,430</div><div class="kpi-foot up">▲ 4.2% <span class="neutral" style="font-weight:500;">vs LM</span></div></div>
+  <div class="card"><div class="kpi-label">Revenue MTD</div><div class="kpi-value">$1.84M</div><div class="kpi-foot up">▲ 6.8% <span class="neutral" style="font-weight:500;">vs LM</span></div></div>
+  <div class="card"><div class="kpi-label">Display activity</div><div class="kpi-value">63%</div><div class="kpi-foot up">▲ 5 pts <span class="neutral" style="font-weight:500;">of accounts</span></div></div>
+  <div class="card"><div class="kpi-label">New PODs (QTD)</div><div class="kpi-value">27</div><div class="kpi-foot neutral">on pace for 40</div></div>
+`;
+
+/* ============================================================
+   CHARTS
+   ============================================================ */
+Chart.defaults.color = COLORS.text2;
+Chart.defaults.font.family = "'Inter',sans-serif";
+Chart.defaults.font.size = 11;
+
+const months = ['Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun'];
+new Chart(document.getElementById('trendChart'),{
+  type:'line',
+  data:{labels:months,datasets:[
+    {label:'9L Cases',data:[7800,8200,9100,8700,9400,10100,10600,10900,11430],borderColor:COLORS.blue,backgroundColor:'rgba(59,130,246,.08)',fill:true,tension:.35,pointRadius:0,borderWidth:2,yAxisID:'y'},
+    {label:'Revenue ($K)',data:[1260,1310,1480,1390,1510,1620,1710,1760,1840],borderColor:COLORS.cyan,backgroundColor:'rgba(6,182,212,.06)',fill:true,tension:.35,pointRadius:0,borderWidth:2,yAxisID:'y1',borderDash:[4,3]},
+  ]},
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{grid:{color:'rgba(255,255,255,.04)'}},
+      y:{position:'left',grid:{color:'rgba(255,255,255,.04)'},title:{display:true,text:'Cases',color:COLORS.text2,font:{size:10}}},
+      y1:{position:'right',grid:{display:false},title:{display:true,text:'Revenue ($K)',color:COLORS.text2,font:{size:10}}},
+    }
+  }
+});
+
+new Chart(document.getElementById('catChart'),{
+  type:'doughnut',
+  data:{labels:['Red blends','Box wine','Premium varietal','Sparkling','Other'],
+    datasets:[{data:[34,28,21,11,6],backgroundColor:[COLORS.blue,COLORS.cyan,COLORS.success,COLORS.warning,'#5B6677'],borderWidth:0}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false}}}
+});
+
+new Chart(document.getElementById('acctChart'),{
+  type:'bar',
+  data:{labels:['Meijer #142','Kroger #318','Total Wine - Troy','Walmart #2210','Spartan Nash #66'],
+    datasets:[{data:[820,710,690,540,470],backgroundColor:COLORS.blue,borderRadius:5}]},
+  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{grid:{color:'rgba(255,255,255,.04)'}},y:{grid:{display:false}}}}
+});
+
+new Chart(document.getElementById('brandChart'),{
+  type:'bar',
+  data:{labels:['Bota Box','FF Coppola Diamond','Black Stallion','Stoneleigh','Other DFW'],
+    datasets:[{data:[4200,3100,2400,1300,430],backgroundColor:[COLORS.blue,COLORS.cyan,COLORS.success,COLORS.warning,'#5B6677'],borderRadius:6}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(255,255,255,.04)'}}}}
+});
+
+/* ============================================================
+   GOALS
+   ============================================================ */
+function statusFor(pct){
+  if(pct>=90) return {label:'On track',color:COLORS.success,bg:'rgba(16,185,129,.12)'};
+  if(pct>=60) return {label:'In progress',color:COLORS.blue,bg:'rgba(59,130,246,.12)'};
+  if(pct>=30) return {label:'Needs attention',color:COLORS.warning,bg:'rgba(245,158,11,.12)'};
+  return {label:'At risk',color:COLORS.danger,bg:'rgba(239,68,68,.12)'};
+}
+function catColor(cat){
+  const map = {Sales:COLORS.blue,Financial:COLORS.success,Fitness:COLORS.danger,Health:COLORS.cyan,Learning:COLORS.warning,Personal:'#A78BFA',Professional:'#5B6677'};
+  return map[cat]||COLORS.text2;
+}
+function renderGoals(filter){
+  filter = filter||'All';
+  const list = state.goals.filter(g=>filter==='All'||g.cat===filter);
+  document.getElementById('goalList').innerHTML = list.map(g=>{
+    const pct = Math.min(100, Math.round((g.current/g.target)*100));
+    const s = statusFor(pct);
+    const c = catColor(g.cat);
+    const days = Math.ceil((new Date(g.deadline) - new Date())/86400000);
+    return `<div class="goal-card">
+      <div class="goal-top">
+        <div style="flex:1;">
+          <span class="goal-cat" style="background:${c}22;color:${c};">${g.cat}</span>
+          <div class="goal-name">${g.name}</div>
+          <div class="goal-meta">Target ${g.target.toLocaleString()} &nbsp;·&nbsp; Current ${g.current.toLocaleString()} &nbsp;·&nbsp; ${days>0?days+' days left':'past due'}</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="goal-pct" style="color:${c};">${pct}%</div>
+          <span class="status-badge" style="background:${s.bg};color:${s.color};">● ${s.label}</span>
+        </div>
+      </div>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:linear-gradient(90deg,${c},${c}aa);"></div></div>
+    </div>`;
+  }).join('') || '<div style="color:var(--text2);font-size:13px;padding:20px;">No goals in this category yet.</div>';
+}
+renderGoals();
+document.querySelectorAll('#goalTabs .tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('#goalTabs .tab').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  renderGoals(t.dataset.cat);
+}));
+
+function renderGoalSnapshot(){
+  const top3 = state.goals.slice(0,3);
+  document.getElementById('goalSnapshot').innerHTML = top3.map(g=>{
+    const pct = Math.min(100, Math.round((g.current/g.target)*100));
+    const c = catColor(g.cat);
+    return `<div class="card">
+      <div class="kpi-label">${g.name}</div>
+      <div style="font-size:22px;font-weight:700;margin-top:8px;color:${c};font-family:'JetBrains Mono',monospace;">${pct}%</div>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${c};"></div></div>
+    </div>`;
+  }).join('');
+}
+renderGoalSnapshot();
+
+function openGoalModal(){document.getElementById('goalModalOverlay').classList.add('open');}
+function closeGoalModal(){document.getElementById('goalModalOverlay').classList.remove('open');}
+function addGoal(){
+  const name = document.getElementById('newGoalName').value.trim();
+  if(!name) return;
+  state.goals.push({
+    id: Date.now(),
+    cat: document.getElementById('newGoalCat').value,
+    name,
+    target: parseFloat(document.getElementById('newGoalTarget').value)||100,
+    current: parseFloat(document.getElementById('newGoalCurrent').value)||0,
+    deadline: document.getElementById('newGoalDeadline').value || '2026-12-31'
+  });
+  closeGoalModal();
+  renderGoals(document.querySelector('#goalTabs .tab.active').dataset.cat);
+  renderGoalSnapshot();
+  document.getElementById('newGoalName').value='';
+}
+
+/* ============================================================
+   CHAIN / DISTRIBUTOR / ACCOUNT TABLES
+   ============================================================ */
+const chainData = [
+  ['Kroger','3,420','+5.1%','312','68%'],
+  ['Meijer','2,810','+3.4%','268','71%'],
+  ['Walmart','1,990','-1.2%','190','54%'],
+  ['Target','1,340','+2.0%','140','59%'],
+  ['Spartan Nash','980','+6.7%','98','62%'],
+  ['Total Wine','870','+8.9%','64','77%'],
+];
+document.getElementById('chainTable').innerHTML = `
+  <thead><tr><th>Chain</th><th>9L Cases</th><th>MoM</th><th>PODs</th><th>Feature exec.</th></tr></thead>
+  <tbody>${chainData.map(r=>`<tr><td>${r[0]}</td><td class="mono">${r[1]}</td><td style="color:${r[2][0]==='+'?'#10B981':'#EF4444'};">${r[2]}</td><td class="mono">${r[3]}</td><td class="mono">${r[4]}</td></tr>`).join('')}</tbody>`;
+
+const distScores = [
+  {name:'Alliance Beverage Distributing',score:87,trend:'up'},
+];
+document.getElementById('distCards').innerHTML = distScores.map(d=>`
+  <div class="card">
+    <div class="kpi-label">${d.name}</div>
+    <div class="kpi-value" style="color:${COLORS.success};">${d.score}<span style="font-size:14px;color:var(--text2);">/100</span></div>
+    <div class="kpi-foot up">▲ improved 7 of 10 key accounts</div>
+  </div>
+  <div class="card">
+    <div class="kpi-label">Active brands managed</div>
+    <div class="kpi-value">19</div>
+    <div class="kpi-foot neutral">weighted scorecard, 454 formulas</div>
+  </div>
+  <div class="card">
+    <div class="kpi-label">Execution accounts tracked</div>
+    <div class="kpi-value">142</div>
+    <div class="kpi-foot up">▲ 12 added this quarter</div>
+  </div>
+`).join('');
+
+const distRows = [
+  ['Order accuracy','22%','94%','21.3'],
+  ['On-time delivery','20%','91%','18.2'],
+  ['POD compliance','18%','88%','15.8'],
+  ['Display execution','15%','71%','10.7'],
+  ['Pricing compliance','12%','97%','11.6'],
+  ['Communication / responsiveness','13%','89%','11.6'],
+];
+document.getElementById('distTable').innerHTML = `
+  <thead><tr><th>Category</th><th>Weight</th><th>Score</th><th>Weighted pts</th></tr></thead>
+  <tbody>${distRows.map(r=>`<tr><td>${r[0]}</td><td class="mono">${r[1]}</td><td class="mono">${r[2]}</td><td class="mono">${r[3]}</td></tr>`).join('')}</tbody>`;
+
+const accounts = [
+  ['Meijer #142','Retail','East Lansing','Gold','820'],
+  ['Kroger #318','Retail','Lansing','Gold','710'],
+  ['Total Wine - Troy','Retail','Troy','Gold','690'],
+  ['Walmart #2210','Retail','Okemos','Silver','540'],
+  ['Spartan Nash #66','Retail','Grand Rapids','Silver','470'],
+  ['The Cellar Bistro','On-premise','Petoskey','Bronze','140'],
+  ['Harbor House Grill','On-premise','Charlevoix','Bronze','112'],
+  ['Lakeshore Tavern','On-premise','Holland','Bronze','98'],
+];
+function renderAccounts(filterText){
+  filterText = (filterText||'').toLowerCase();
+  const rows = accounts.filter(a=>a[0].toLowerCase().includes(filterText));
+  document.getElementById('acctTable').innerHTML = `
+    <thead><tr><th>Account</th><th>Channel</th><th>Region</th><th>Tier</th><th>9L Cases (30d)</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td><span class="chip">${r[3]}</span></td><td class="mono">${r[4]}</td></tr>`).join('')}</tbody>`;
+}
+renderAccounts();
+document.getElementById('acctSearch').addEventListener('input',e=>renderAccounts(e.target.value));
+
+/* ============================================================
+   AI INSIGHTS / TASKS / ALERTS
+   ============================================================ */
+const insights = [
+  {tag:'VOLUME',color:COLORS.success,text:'9L case volume is trending 4.2% ahead of last month, led by Bota Box growth in Meijer and Kroger.',time:'12 min ago'},
+  {tag:'EXECUTION',color:COLORS.blue,text:'Distributor execution improved in 7 of 10 key accounts this week, with display compliance the strongest driver.',time:'1 hr ago'},
+  {tag:'RISK',color:COLORS.warning,text:'Feature execution dipped 2.1% — Walmart #2210 fell off planned ad placement for week 24.',time:'2 hr ago'},
+  {tag:'HEALTH',color:COLORS.cyan,text:'MEDAS score averaged 8.6/14 over the last 30 days, trending up from 7.9 last month.',time:'4 hr ago'},
+  {tag:'GOAL',color:'#A78BFA',text:'Vault Lifter program is 60% complete with 4 months remaining — on pace to finish ahead of the November target.',time:'Yesterday'},
+];
+document.getElementById('insightFeed').innerHTML = insights.slice(0,4).map(i=>`
+  <div class="insight-item">
+    <span class="insight-tag" style="color:${i.color};">${i.tag}</span>
+    <div class="insight-text">${i.text}</div>
+    <div class="insight-time">${i.time}</div>
+  </div>`).join('');
+document.getElementById('insightFull').innerHTML = insights.map(i=>`
+  <div class="insight-item">
+    <span class="insight-tag" style="color:${i.color};">${i.tag}</span>
+    <div class="insight-text">${i.text}</div>
+    <div class="insight-time">${i.time}</div>
+  </div>`).join('');
+
+const tasks = [
+  {text:'Call back Total Wine - Troy re: Q3 display reset',done:false,meta:'Due tomorrow'},
+  {text:'Submit weekly recap to Alliance Beverage',done:false,meta:'Due Friday'},
+  {text:'Review Spartan Nash POD compliance report',done:true,meta:'Completed'},
+  {text:'Follow up on Walmart #2210 ad placement gap',done:false,meta:'Due in 2 days'},
+];
+document.getElementById('taskFeed').innerHTML = tasks.map(t=>`
+  <div class="task-item">
+    <div class="task-check ${t.done?'done':''}"></div>
+    <div>
+      <div class="task-text ${t.done?'done':''}">${t.text}</div>
+      <div class="task-meta">${t.meta}</div>
+    </div>
+  </div>`).join('');
+
+const alerts = [
+  {text:'Walmart #2210 feature compliance below 60% threshold',sev:'warning'},
+  {text:'Bota Box velocity up 12% — consider expanding facings',sev:'success'},
+];
+document.getElementById('alertFeed').innerHTML = alerts.map(a=>`
+  <div class="insight-item" style="border-left:2px solid ${a.sev==='warning'?COLORS.warning:COLORS.success};">
+    <div class="insight-text">${a.text}</div>
+  </div>`).join('');
+
+/* ============================================================
+   REPORTS
+   ============================================================ */
+const reports = [
+  {name:'Monthly DFW sales recap — June 2026',date:'Jun 16, 2026'},
+  {name:'Distributor scorecard — Q2 2026',date:'Jun 10, 2026'},
+  {name:'Account call tracker summary',date:'Jun 3, 2026'},
+];
+document.getElementById('reportCards').innerHTML = reports.map(r=>`
+  <div class="card lift" style="cursor:pointer;">
+    <div class="panel-title">${r.name}</div>
+    <div class="panel-sub">Generated ${r.date}</div>
+    <button class="btn" style="margin-top:6px;">Download</button>
+  </div>`).join('');
+
+/* ============================================================
+   EXCEL / CSV IMPORT
+   ============================================================ */
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+dropzone.addEventListener('click',()=>fileInput.click());
+dropzone.addEventListener('dragover',e=>{e.preventDefault();dropzone.classList.add('drag');});
+dropzone.addEventListener('dragleave',()=>dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop',e=>{
+  e.preventDefault();dropzone.classList.remove('drag');
+  if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change',e=>{ if(e.target.files.length) handleFile(e.target.files[0]); });
+
+function handleFile(file){
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    const data = new Uint8Array(e.target.result);
+    const wb = XLSX.read(data,{type:'array'});
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(sheet,{defval:''});
+    if(!json.length){ alert('No rows detected in this file.'); return; }
+    const cols = Object.keys(json[0]);
+    state.pendingImport = {fileName:file.name, cols, rows:json};
+    renderImportPreview();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function guessFieldType(col){
+  const c = col.toLowerCase();
+  if(c.includes('date')||c.includes('week')) return 'Date';
+  if(c.includes('case')||c.includes('qty')||c.includes('volume')||c.includes('rev')||c.includes('$')) return 'Number';
+  if(c.includes('account')||c.includes('store')||c.includes('chain')) return 'Account';
+  if(c.includes('brand')||c.includes('item')||c.includes('sku')) return 'Product';
+  return 'Text';
+}
+
+function renderImportPreview(){
+  const {fileName, cols, rows} = state.pendingImport;
+  document.getElementById('importPreviewWrap').style.display='block';
+  document.getElementById('rowCountChip').textContent = rows.length + ' rows · ' + fileName;
+
+  document.getElementById('mappingCard').innerHTML = `
+    <div class="grid grid-3">
+    ${cols.map(c=>`
+      <div>
+        <label class="field-label">${c}</label>
+        <select style="width:100%;">
+          <option ${guessFieldType(c)==='Date'?'selected':''}>Date</option>
+          <option ${guessFieldType(c)==='Number'?'selected':''}>Number</option>
+          <option ${guessFieldType(c)==='Account'?'selected':''}>Account</option>
+          <option ${guessFieldType(c)==='Product'?'selected':''}>Product</option>
+          <option ${guessFieldType(c)==='Text'?'selected':''}>Text</option>
+          <option>Ignore</option>
+        </select>
+      </div>`).join('')}
+    </div>`;
+
+  const previewRows = rows.slice(0,12);
+  document.getElementById('previewTable').innerHTML = `
+    <thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+    <tbody>${previewRows.map(r=>`<tr>${cols.map(c=>`<td>${r[c]}</td>`).join('')}</tr>`).join('')}</tbody>`;
+
+  document.getElementById('importStatus').textContent='';
+}
+
+function saveTemplate(){
+  const name = document.getElementById('templateName').value.trim();
+  if(!name || !state.pendingImport) return;
+  state.templates.push({name, cols:state.pendingImport.cols, date:new Date().toISOString().slice(0,10)});
+  renderTemplates();
+  document.getElementById('templateName').value='';
+}
+
+function confirmImport(){
+  if(!state.pendingImport) return;
+  state.importHistory.unshift({
+    file: state.pendingImport.fileName,
+    rows: state.pendingImport.rows.length,
+    date: new Date().toISOString().slice(0,10),
+    status: 'Synced'
+  });
+  renderHistory();
+  document.getElementById('importStatus').textContent = '✓ Imported and queued for Google Sheets sync';
+}
+
+function renderTemplates(){
+  document.getElementById('templateList').innerHTML = state.templates.map(t=>`
+    <div class="card">
+      <div class="panel-title" style="font-size:13px;">${t.name}</div>
+      <div class="panel-sub">Saved ${t.date}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
+        ${t.cols.map(c=>`<span class="chip">${c}</span>`).join('')}
+      </div>
+    </div>`).join('');
+}
+function renderHistory(){
+  document.getElementById('historyTable').innerHTML = `
+    <thead><tr><th>File</th><th>Rows</th><th>Date</th><th>Status</th></tr></thead>
+    <tbody>${state.importHistory.map(h=>`<tr><td>${h.file}</td><td class="mono">${h.rows}</td><td>${h.date}</td><td><span class="pill" style="display:inline-flex;">${h.status}</span></td></tr>`).join('')}</tbody>`;
+}
+renderTemplates();
+renderHistory();
+</script>
+</body>
+</html>
 
