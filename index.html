@@ -563,6 +563,7 @@ label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:bloc
           <select id="dsipHalf" style="width:160px;">
             <option value="H1">H1 (Jan–Jun)</option>
             <option value="H2">H2 (Jul–Dec)</option>
+            <option value="FY">Full year</option>
           </select>
         </div>
       </div>
@@ -624,9 +625,9 @@ label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:bloc
       <div class="card">
         <div class="grid grid-4" style="gap:14px;">
           <div><label class="field-label">H1 actual ($)</label><input id="contribActualH1" type="number" value="0" style="width:100%;"></div>
-          <div><label class="field-label">H1 plan ($)</label><input id="contribPlanH1" type="number" value="4265000" style="width:100%;"></div>
+          <div><label class="field-label">H1 plan ($)</label><input id="contribPlanH1" type="number" value="0" style="width:100%;"></div>
           <div><label class="field-label">H2 actual ($)</label><input id="contribActualH2" type="number" value="0" style="width:100%;"></div>
-          <div><label class="field-label">H2 plan ($)</label><input id="contribPlanH2" type="number" value="4963000" style="width:100%;"></div>
+          <div><label class="field-label">H2 plan ($)</label><input id="contribPlanH2" type="number" value="0" style="width:100%;"></div>
         </div>
         <div style="display:flex;gap:24px;margin-top:14px;font-size:12.5px;flex-wrap:wrap;">
           <span style="color:var(--text2);">H1 factor: <span id="contribPayoutH1" class="mono" style="color:var(--text);font-weight:600;">0.00</span></span>
@@ -1262,35 +1263,36 @@ function renderHistory(){
    ============================================================ */
 const dsipState = {
   // each brand carries H1 and H2 actuals + plans so earnbacks can use both halves
+  // TEMPLATE: all plan/actual numbers start at 0 — fill in your real plan numbers below
   depl: [
-    {name:'Brand 1', weight:0.20, aH1:0, aH2:0, pH1:170000, pH2:190000},
-    {name:'Brand 2', weight:0.10, aH1:0, aH2:0, pH1:14000,  pH2:15000},
-    {name:'Brand 3', weight:0.20, aH1:0, aH2:0, pH1:11000,  pH2:12800},
-    {name:'Brand 4', weight:0.10, aH1:0, aH2:0, pH1:1500,   pH2:2600},
-    {name:'Brand 5', weight:0.10, aH1:0, aH2:0, pH1:2200,   pH2:2500},
-    {name:'Brand 6', weight:0.10, aH1:0, aH2:0, pH1:1600,   pH2:1900},
-    {name:'Brand 7', weight:0.05, aH1:0, aH2:0, pH1:1700,   pH2:1900},
-    {name:'Brand 8', weight:0.05, aH1:0, aH2:0, pH1:5500,   pH2:5700},
-    {name:'On-Premise', weight:0.10, aH1:0, aH2:0, pH1:4500, pH2:5100},
+    {name:'Brand 1', weight:0.20, aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'Brand 2', weight:0.10, aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'Brand 3', weight:0.20, aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'Brand 4', weight:0.10, aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'Brand 5', weight:0.10, aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'Brand 6', weight:0.10, aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'Brand 7', weight:0.05, aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'Brand 8', weight:0.05, aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'On-Premise', weight:0.10, aH1:0, aH2:0, pH1:0, pH2:0},
   ],
   pod: [
-    {name:'POD SKU 1', aH1:0, aH2:0, pH1:1650,  pH2:2600},
-    {name:'POD SKU 2', aH1:0, aH2:0, pH1:500,   pH2:990},
-    {name:'POD SKU 3', aH1:0, aH2:0, pH1:2550,  pH2:3130},
-    {name:'POD SKU 4', aH1:0, aH2:0, pH1:5600,  pH2:7360},
-    {name:'POD SKU 5', aH1:0, aH2:0, pH1:45,    pH2:160},
-    {name:'POD SKU 6', aH1:0, aH2:0, pH1:1720,  pH2:2500},
-    {name:'POD SKU 7', aH1:0, aH2:0, pH1:600,   pH2:1030},
-    {name:'POD SKU 8', aH1:0, aH2:0, pH1:120,   pH2:380},
-    {name:'POD SKU 9', aH1:0, aH2:0, pH1:960,   pH2:1470},
-    {name:'POD SKU 10', aH1:0, aH2:0, pH1:745,  pH2:1135},
+    {name:'POD SKU 1', aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'POD SKU 2', aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'POD SKU 3', aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'POD SKU 4', aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'POD SKU 5', aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'POD SKU 6', aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'POD SKU 7', aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'POD SKU 8', aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'POD SKU 9', aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'POD SKU 10', aH1:0, aH2:0, pH1:0, pH2:0},
   ],
   // four quarters, each capped at $1,500
   kickers: [
-    {q:'Q1', name:'Kicker line', rate:5, units:0},
-    {q:'Q2', name:'Kicker line', rate:5, units:0},
-    {q:'Q3', name:'Kicker line', rate:5, units:0},
-    {q:'Q4', name:'Kicker line', rate:10, units:0},
+    {q:'Q1', name:'Kicker line', rate:0, units:0},
+    {q:'Q2', name:'Kicker line', rate:0, units:0},
+    {q:'Q3', name:'Kicker line', rate:0, units:0},
+    {q:'Q4', name:'Kicker line', rate:0, units:0},
   ],
   W_DEPL:0.30, W_POD:0.10, W_CONTRIB:0.10,
   FY_KICKER_RATE:600, // $ per FY contribution point over 100% (Excel S47)
@@ -1351,63 +1353,92 @@ function fyContribKickerDollars(fyActual,fyPlan,ratePerPoint,fyElig){
 function currentHalf(){ return document.getElementById('dsipHalf').value; }
 function num(id){ return parseFloat(document.getElementById(id).value)||0; }
 
+// Returns the actual/plan key pair for a given period, treating FY as a
+// read-only derived sum of H1+H2 (actual sums automatically; plan is edited
+// per-half and FY plan shown is just pH1+pH2, recomputed live).
+function periodKeys(period){
+  if(period==='H1') return {aKey:'aH1', pKey:'pH1'};
+  if(period==='H2') return {aKey:'aH2', pKey:'pH2'};
+  return {aKey:'FY', pKey:'FY'}; // FY handled specially below
+}
+
 function buildDeplTableSkeleton(){
   const half = currentHalf();
-  const isH1 = half==='H1';
-  const aKey = isH1?'aH1':'aH2', pKey = isH1?'pH1':'pH2';
+  const isFY = half==='FY';
+  const aKey = half==='H1'?'aH1':'aH2', pKey = half==='H1'?'pH1':'pH2';
   const rows = dsipState.depl.map((b,i)=>{
-    const plan = b[pKey], actual = b[aKey];
+    const actual = isFY ? (b.aH1+b.aH2) : b[aKey];
+    const plan   = isFY ? (b.pH1+b.pH2) : b[pKey];
     return `<tr data-row="${i}">
       <td><input type="text" value="${b.name}" data-dtype="deplname" data-i="${i}" style="width:160px;padding:5px 8px;"></td>
       <td class="mono">${(b.weight*100).toFixed(0)}%</td>
-      <td><input type="number" value="${actual}" data-dtype="depl" data-i="${i}" style="width:110px;padding:5px 8px;"></td>
-      <td class="mono" style="color:var(--text2);" data-cell="plan">${plan.toLocaleString()}</td>
+      <td>${isFY
+          ? `<span class="mono" style="color:var(--text2);" data-cell="actual">${actual.toLocaleString()}</span>`
+          : `<input type="number" value="${actual}" data-dtype="depl" data-i="${i}" style="width:110px;padding:5px 8px;">`}</td>
+      <td>${isFY
+          ? `<span class="mono" style="color:var(--text2);" data-cell="plan">${plan.toLocaleString()}</span>`
+          : `<input type="number" value="${plan}" data-dtype="deplplan" data-i="${i}" style="width:110px;padding:5px 8px;">`}</td>
       <td class="mono" data-cell="pct">0.0%</td>
       <td class="mono" data-cell="payout">0.000</td>
     </tr>`;
   }).join('');
+  const label = isFY ? 'Full year' : half;
   document.getElementById('dsipDeplTable').innerHTML =
-    `<thead><tr><th>Brand</th><th>Weight</th><th>${half} actual</th><th>${half} plan</th><th>% of goal</th><th>Payout</th></tr></thead><tbody>${rows}</tbody>`;
+    `<thead><tr><th>Brand</th><th>Weight</th><th>${label} actual</th><th>${label} plan</th><th>% of goal</th><th>Payout</th></tr></thead><tbody>${rows}</tbody>`;
 }
 
 function buildPodTableSkeleton(){
   const half = currentHalf();
-  const isH1 = half==='H1';
-  const aKey = isH1?'aH1':'aH2', pKey = isH1?'pH1':'pH2';
+  const isFY = half==='FY';
+  const aKey = half==='H1'?'aH1':'aH2', pKey = half==='H1'?'pH1':'pH2';
   const rows = dsipState.pod.map((p,i)=>{
-    const plan = p[pKey], actual = p[aKey];
+    const actual = isFY ? (p.aH1+p.aH2) : p[aKey];
+    const plan   = isFY ? (p.pH1+p.pH2) : p[pKey];
     return `<tr data-row="${i}">
       <td><input type="text" value="${p.name}" data-dtype="podname" data-i="${i}" style="width:170px;padding:5px 8px;"></td>
-      <td><input type="number" value="${actual}" data-dtype="pod" data-i="${i}" style="width:110px;padding:5px 8px;"></td>
-      <td class="mono" style="color:var(--text2);" data-cell="plan">${plan.toLocaleString()}</td>
+      <td>${isFY
+          ? `<span class="mono" style="color:var(--text2);" data-cell="actual">${actual.toLocaleString()}</span>`
+          : `<input type="number" value="${actual}" data-dtype="pod" data-i="${i}" style="width:110px;padding:5px 8px;">`}</td>
+      <td>${isFY
+          ? `<span class="mono" style="color:var(--text2);" data-cell="plan">${plan.toLocaleString()}</span>`
+          : `<input type="number" value="${plan}" data-dtype="podplan" data-i="${i}" style="width:110px;padding:5px 8px;">`}</td>
       <td class="mono" data-cell="pct">0%</td>
       <td style="font-weight:700;" data-cell="hit">—</td>
     </tr>`;
   }).join('');
+  const label = isFY ? 'Full year' : half;
   document.getElementById('dsipPodTable').innerHTML =
-    `<thead><tr><th>SKU</th><th>${half} actual</th><th>${half} plan</th><th>% of goal</th><th>Hit</th></tr></thead><tbody>${rows}</tbody>`;
+    `<thead><tr><th>SKU</th><th>${label} actual</th><th>${label} plan</th><th>% of goal</th><th>Hit</th></tr></thead><tbody>${rows}</tbody>`;
 }
 
 // Patches the derived (read-only) cells in place — never touches <input> elements,
 // so focus and in-progress typing are never interrupted.
 function patchDeplTable(){
   const half = currentHalf();
-  const isH1 = half==='H1';
-  const aKey = isH1?'aH1':'aH2', pKey = isH1?'pH1':'pH2';
+  const isFY = half==='FY';
+  const aKey = half==='H1'?'aH1':'aH2', pKey = half==='H1'?'pH1':'pH2';
   let deplPayout = 0, deplHits = 0, deplTotal = 0;
   const tbody = document.querySelector('#dsipDeplTable tbody');
   if(!tbody) return {deplPayout,deplHits,deplTotal};
   dsipState.depl.forEach((b,i)=>{
-    const plan = b[pKey], actual = b[aKey];
+    const actual = isFY ? (b.aH1+b.aH2) : b[aKey];
+    const plan   = isFY ? (b.pH1+b.pH2) : b[pKey];
     const pct = plan>0 ? actual/plan : 0;
-    const payout = deplTierPayout(actual, plan, b.weight);
-    deplPayout += payout;
+    // FY payout shown is the sum of each half's own tiered payout (not a single FY-ratio tier) —
+    // matches how the rest of the engine treats FY as H1+H2, not a re-tiered combined ratio.
+    const payout = isFY
+      ? deplTierPayout(b.aH1, b.pH1, b.weight) + deplTierPayout(b.aH2, b.pH2, b.weight)
+      : deplTierPayout(actual, plan, b.weight);
+    deplPayout += isFY ? payout/2 : payout; // keep deplPayout comparable in scale to half-view sums
     if(pct >= 1) deplHits++;
     if(plan>0) deplTotal++;
     const tr = tbody.querySelector(`tr[data-row="${i}"]`);
     if(!tr) return;
     const pctColor = pct>=1?'#10B981':pct>=0.95?'#F59E0B':'#EF4444';
-    tr.querySelector('[data-cell="plan"]').textContent = plan.toLocaleString();
+    const planCell = tr.querySelector('[data-cell="plan"]');
+    if(planCell) planCell.textContent = plan.toLocaleString();
+    const actualCell = tr.querySelector('[data-cell="actual"]');
+    if(actualCell) actualCell.textContent = actual.toLocaleString();
     const pctCell = tr.querySelector('[data-cell="pct"]');
     pctCell.textContent = (pct*100).toFixed(1)+'%';
     pctCell.style.color = pctColor;
@@ -1418,19 +1449,23 @@ function patchDeplTable(){
 
 function patchPodTable(){
   const half = currentHalf();
-  const isH1 = half==='H1';
-  const aKey = isH1?'aH1':'aH2', pKey = isH1?'pH1':'pH2';
+  const isFY = half==='FY';
+  const aKey = half==='H1'?'aH1':'aH2', pKey = half==='H1'?'pH1':'pH2';
   let podHits = 0;
   const tbody = document.querySelector('#dsipPodTable tbody');
   if(!tbody) return {podHits};
   dsipState.pod.forEach((p,i)=>{
-    const plan = p[pKey], actual = p[aKey];
+    const actual = isFY ? (p.aH1+p.aH2) : p[aKey];
+    const plan   = isFY ? (p.pH1+p.pH2) : p[pKey];
     const pct = plan>0 ? Math.round((actual/plan)*100)/100 : 0;
     const hit = pct >= 1;
     if(hit) podHits++;
     const tr = tbody.querySelector(`tr[data-row="${i}"]`);
     if(!tr) return;
-    tr.querySelector('[data-cell="plan"]').textContent = plan.toLocaleString();
+    const planCell = tr.querySelector('[data-cell="plan"]');
+    if(planCell) planCell.textContent = plan.toLocaleString();
+    const actualCell = tr.querySelector('[data-cell="actual"]');
+    if(actualCell) actualCell.textContent = actual.toLocaleString();
     tr.querySelector('[data-cell="pct"]').textContent = (pct*100).toFixed(0)+'%';
     const hitCell = tr.querySelector('[data-cell="hit"]');
     hitCell.textContent = hit?'✓':'—';
@@ -1524,13 +1559,19 @@ function renderDsip(){
   const pfpDollars = salary * target * pfpFactor;
   const fyKickerDollars = fyContribKickerDollars(cAH1+cAH2, cPH1+cPH2, dsipState.FY_KICKER_RATE, eligFY);
 
-  // ---- Current-half summary cards ----
-  const halfNet = isH1?netH1:netH2, halfDollar = isH1?dollarH1:dollarH2, halfKicker = isH1?kH1:kH2;
+  // ---- Current-period summary cards (H1 / H2 / Full year) ----
+  const isFY = half==='FY';
+  const fyTotalEarly = dollarH1 + dollarH2 + deplEarnDollars + contribEarnDollars + pfpDollars + kickerTotal + fyKickerDollars;
+  const fyNetFactorEarly = netH1*eligH1 + netH2*eligH2 + deplEarnFactor + contribEarnFactor + pfpFactor;
+  const periodLabel = isFY ? 'Full year' : half;
+  const periodNet = isFY ? fyNetFactorEarly : (isH1?netH1:netH2);
+  const periodDollar = isFY ? fyTotalEarly : (isH1?dollarH1:dollarH2);
+  const periodKicker = isFY ? kickerTotal : (isH1?kH1:kH2);
   document.getElementById('dsipSummary').innerHTML = `
-    <div class="card"><div class="kpi-label">${half} net factor</div><div class="kpi-value" style="color:#3B82F6;">${(halfNet*100).toFixed(1)}%</div><div class="kpi-foot neutral">of ${(target*100).toFixed(0)}% target</div></div>
+    <div class="card"><div class="kpi-label">${periodLabel} net factor</div><div class="kpi-value" style="color:#3B82F6;">${(periodNet*100).toFixed(1)}%</div><div class="kpi-foot neutral">of ${(target*100).toFixed(0)}% target</div></div>
     <div class="card"><div class="kpi-label">Depletion contribution</div><div class="kpi-value">${(deplPayout*dsipState.W_DEPL*100).toFixed(1)}%</div><div class="kpi-foot neutral">${deplHits}/${deplTotal} brands at goal</div></div>
-    <div class="card"><div class="kpi-label">Est. ${half} payout</div><div class="kpi-value" style="color:#10B981;">$${Math.round(halfDollar).toLocaleString()}</div><div class="kpi-foot neutral">salary × target × factor</div></div>
-    <div class="card"><div class="kpi-label">${half} incl. kickers</div><div class="kpi-value" style="color:#06B6D4;">$${Math.round(halfDollar+halfKicker).toLocaleString()}</div><div class="kpi-foot up">+ $${halfKicker.toLocaleString()} kicker</div></div>
+    <div class="card"><div class="kpi-label">Est. ${periodLabel} payout</div><div class="kpi-value" style="color:#10B981;">$${Math.round(periodDollar).toLocaleString()}</div><div class="kpi-foot neutral">${isFY?'all components, full year':'salary × target × factor'}</div></div>
+    <div class="card"><div class="kpi-label">${periodLabel} incl. kickers</div><div class="kpi-value" style="color:#06B6D4;">$${Math.round((isFY?periodDollar:periodDollar+periodKicker)).toLocaleString()}</div><div class="kpi-foot up">${isFY?'kickers already included':'+ $'+periodKicker.toLocaleString()+' kicker'}</div></div>
   `;
 
   // ---- Full-year roll-up table ----
@@ -1579,9 +1620,11 @@ document.getElementById('sec-dsip').addEventListener('input', (e)=>{
     if(t.dataset.dtype==='deplname'){ dsipState.depl[i].name = t.value; return; }
     if(t.dataset.dtype==='podname'){ dsipState.pod[i].name = t.value; return; }
     const v = parseFloat(t.value)||0;
-    const half = currentHalf(), aKey = half==='H1'?'aH1':'aH2';
+    const half = currentHalf(), aKey = half==='H1'?'aH1':'aH2', pKey = half==='H1'?'pH1':'pH2';
     if(t.dataset.dtype==='depl') dsipState.depl[i][aKey] = v;
+    else if(t.dataset.dtype==='deplplan') dsipState.depl[i][pKey] = v;
     else if(t.dataset.dtype==='pod') dsipState.pod[i][aKey] = v;
+    else if(t.dataset.dtype==='podplan') dsipState.pod[i][pKey] = v;
     else if(t.dataset.dtype==='krate') dsipState.kickers[i].rate = v;
     else if(t.dataset.dtype==='kunits') dsipState.kickers[i].units = v;
   }
