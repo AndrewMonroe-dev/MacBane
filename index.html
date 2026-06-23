@@ -443,7 +443,10 @@ label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:bloc
           <div class="page-title">Goals</div>
           <div class="page-sub">Professional, financial, fitness &amp; personal tracking</div>
         </div>
-        <button class="btn btn-primary" onclick="openGoalModal()">+ New goal</button>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span id="syncStatus" style="font-size:11.5px;color:var(--text2);"></span>
+          <button class="btn btn-primary" onclick="openGoalModal()">+ New goal</button>
+        </div>
       </div>
       <div class="tabs" id="goalTabs">
         <div class="tab active" data-cat="All">All</div>
@@ -734,6 +737,42 @@ label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:bloc
 
 <script>
 /* ============================================================
+   GOOGLE SHEETS SYNC
+   ============================================================ */
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzf7M-ZbOOI7YnYhoS4zW5YsTHuFF0fwK5sle9WRsuPHgjKcNKE-3Wk_xtkdKnwNwV8gw/exec';
+
+function setSyncStatus(msg, isError){
+  const el = document.getElementById('syncStatus');
+  if(!el) return;
+  el.textContent = msg;
+  el.style.color = isError ? 'var(--danger)' : 'var(--success)';
+}
+
+async function gsGet(action, params){
+  params = params || {};
+  const qs = new URLSearchParams(Object.assign({action}, params)).toString();
+  const res = await fetch(`${SHEETS_URL}?${qs}`);
+  if(!res.ok) throw new Error('Sheets GET failed: ' + res.status);
+  const json = await res.json();
+  if(!json.ok) throw new Error(json.error || 'Unknown Sheets error');
+  return json.data;
+}
+
+async function gsPost(body){
+  // Apps Script doPost doesn't return CORS headers for application/json preflight,
+  // so we send as text/plain (which Apps Script still parses fine via JSON.parse(e.postData.contents)).
+  const res = await fetch(SHEETS_URL, {
+    method: 'POST',
+    headers: {'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify(body)
+  });
+  if(!res.ok) throw new Error('Sheets POST failed: ' + res.status);
+  const json = await res.json();
+  if(!json.ok) throw new Error(json.error || 'Unknown Sheets error');
+  return json;
+}
+
+/* ============================================================
    STATE
    ============================================================ */
 const state = {
@@ -929,22 +968,62 @@ renderGoalSnapshot();
 
 function openGoalModal(){document.getElementById('goalModalOverlay').classList.add('open');}
 function closeGoalModal(){document.getElementById('goalModalOverlay').classList.remove('open');}
-function addGoal(){
+async function addGoal(){
   const name = document.getElementById('newGoalName').value.trim();
   if(!name) return;
-  state.goals.push({
+  const goal = {
     id: Date.now(),
     cat: document.getElementById('newGoalCat').value,
     name,
     target: parseFloat(document.getElementById('newGoalTarget').value)||100,
     current: parseFloat(document.getElementById('newGoalCurrent').value)||0,
     deadline: document.getElementById('newGoalDeadline').value || '2026-12-31'
-  });
+  };
+  state.goals.push(goal);
   closeGoalModal();
   renderGoals(document.querySelector('#goalTabs .tab.active').dataset.cat);
   renderGoalSnapshot();
   document.getElementById('newGoalName').value='';
+
+  setSyncStatus('Saving to Sheets...', false);
+  try{
+    await gsPost({action:'addGoal', row:{
+      ID: goal.id, title: goal.name, category: goal.cat,
+      status: 'active', progress: goal.current, target: goal.target, deadline: goal.deadline
+    }});
+    setSyncStatus('✓ Synced', false);
+  }catch(err){
+    setSyncStatus('⚠ Sync failed — saved locally only', true);
+    console.error(err);
+  }
 }
+
+async function loadGoalsFromSheets(){
+  setSyncStatus('Loading from Sheets...', false);
+  try{
+    const rows = await gsGet('getGoals');
+    if(rows && rows.length){
+      state.goals = rows.map(r=>({
+        id: r.ID || Date.now()+Math.random(),
+        cat: r.category || 'Personal',
+        name: r.title || '(untitled goal)',
+        target: parseFloat(r.target)||100,
+        current: parseFloat(r.progress)||0,
+        deadline: r.deadline || '2026-12-31'
+      }));
+      const activeTab = document.querySelector('#goalTabs .tab.active');
+      renderGoals(activeTab ? activeTab.dataset.cat : 'All');
+      renderGoalSnapshot();
+      setSyncStatus('✓ Synced from Sheets', false);
+    } else {
+      setSyncStatus('Sheets connected — no goals saved yet', false);
+    }
+  }catch(err){
+    setSyncStatus('⚠ Could not reach Sheets — showing local data', true);
+    console.error(err);
+  }
+}
+loadGoalsFromSheets();
 
 /* ============================================================
    CHAIN / DISTRIBUTOR / ACCOUNT TABLES
@@ -1151,16 +1230,30 @@ function saveTemplate(){
   document.getElementById('templateName').value='';
 }
 
-function confirmImport(){
+async function confirmImport(){
   if(!state.pendingImport) return;
-  state.importHistory.unshift({
-    file: state.pendingImport.fileName,
-    rows: state.pendingImport.rows.length,
-    date: new Date().toISOString().slice(0,10),
-    status: 'Synced'
-  });
-  renderHistory();
-  document.getElementById('importStatus').textContent = '✓ Imported and queued for Google Sheets sync';
+  const {fileName, rows} = state.pendingImport;
+  document.getElementById('importStatus').textContent = 'Syncing to Google Sheets...';
+  document.getElementById('importStatus').style.color = 'var(--text2)';
+  try{
+    await gsPost({action:'importRows', rows});
+    state.importHistory.unshift({
+      file: fileName, rows: rows.length,
+      date: new Date().toISOString().slice(0,10), status: 'Synced'
+    });
+    renderHistory();
+    document.getElementById('importStatus').textContent = '✓ Imported and synced to Google Sheets';
+    document.getElementById('importStatus').style.color = 'var(--success)';
+  }catch(err){
+    state.importHistory.unshift({
+      file: fileName, rows: rows.length,
+      date: new Date().toISOString().slice(0,10), status: 'Sync failed'
+    });
+    renderHistory();
+    document.getElementById('importStatus').textContent = '⚠ Import saved locally — Sheets sync failed';
+    document.getElementById('importStatus').style.color = 'var(--danger)';
+    console.error(err);
+  }
 }
 
 function renderTemplates(){
