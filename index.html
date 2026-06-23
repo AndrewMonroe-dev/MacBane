@@ -312,6 +312,9 @@ label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:bloc
     <div class="navitem" data-route="sales">
       <span class="ic">▲</span> Sales metrics
     </div>
+    <div class="navitem" data-route="dsip">
+      <span class="ic">$</span> DSIP payout
+    </div>
     <div class="navitem" data-route="distributors">
       <span class="ic">◆</span> Distributors
     </div>
@@ -377,6 +380,20 @@ label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:bloc
           <div class="panel-title">Top accounts — feature activity</div>
           <div class="panel-sub">Ranked by 9L case depletion, trailing 30 days</div>
           <div style="height:220px;"><canvas id="acctChart" role="img" aria-label="Horizontal bar chart of top accounts by case depletion"></canvas></div>
+        </div>
+      </div>
+
+      <div class="section-heading"><span class="bar"></span>DSIP payout tracker</div>
+      <div class="grid grid-3">
+        <div class="card" id="dsipDashCard" style="cursor:pointer;" onclick="route('dsip')"></div>
+        <div class="card" style="cursor:pointer;" onclick="route('dsip')">
+          <div class="kpi-label">Open full calculator</div>
+          <div style="font-size:13px;color:var(--text2);margin-top:10px;line-height:1.5;">Enter depletions, PODs, contribution, and quarterly kickers to model your H1/H2 payout.</div>
+          <button class="btn" style="margin-top:12px;">Open DSIP →</button>
+        </div>
+        <div class="card">
+          <div class="kpi-label">How it works</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:10px;line-height:1.5;">Depletions 30% · PODs 10% · Contribution 10%, each tiered against plan. Hit 100% for full weight, 97.5%+ for 75%, 95%+ for 50%.</div>
         </div>
       </div>
 
@@ -499,6 +516,111 @@ label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:bloc
         <div><div class="page-title">Insights</div><div class="page-sub">All AI-generated observations across modules</div></div>
       </div>
       <div id="insightFull"></div>
+    </div>
+
+    <!-- ===== DSIP PAYOUT CALCULATOR ===== -->
+    <div class="section" id="sec-dsip">
+      <div class="topbar">
+        <div>
+          <div class="page-title">DSIP payout calculator</div>
+          <div class="page-sub">Enter actuals against plan — payout recalculates live. All names and numbers are placeholders.</div>
+        </div>
+        <div class="topbar-right">
+          <select id="dsipHalf" style="width:160px;">
+            <option value="H1">H1 (Jan–Jun)</option>
+            <option value="H2">H2 (Jul–Dec)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Payout summary cards -->
+      <div class="grid grid-4" id="dsipSummary"></div>
+
+      <!-- Salary / eligibility inputs -->
+      <div class="card" style="margin-top:16px;">
+        <div class="panel-title">Plan inputs</div>
+        <div class="panel-sub">Salary basis and target bonus % drive the dollar estimate. Eligibility = months worked ÷ period (1 = full period).</div>
+        <div class="grid grid-3" style="gap:14px;margin-bottom:14px;">
+          <div><label class="field-label">Salary basis ($)</label><input id="dsipSalary" type="number" value="100000" style="width:100%;"></div>
+          <div><label class="field-label">Target bonus (%)</label><input id="dsipTarget" type="number" value="30" style="width:100%;"></div>
+          <div><label class="field-label">PFP company outcome (0–1)</label><input id="dsipPfpOutcome" type="number" step="0.01" value="1" style="width:100%;"></div>
+        </div>
+        <div class="grid grid-4" style="gap:14px;">
+          <div><label class="field-label">H1 eligibility</label><input id="dsipEligH1" type="number" step="0.01" value="1" style="width:100%;"></div>
+          <div><label class="field-label">H2 eligibility</label><input id="dsipEligH2" type="number" step="0.01" value="1" style="width:100%;"></div>
+          <div><label class="field-label">FY eligibility</label><input id="dsipEligFY" type="number" step="0.01" value="1" style="width:100%;"></div>
+          <div><label class="field-label">Year-end &amp; active?</label>
+            <select id="dsipYearEnd" style="width:100%;">
+              <option value="yes">Yes (earnbacks on)</option>
+              <option value="no">No (mid-year)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Depletions -->
+      <div class="section-heading"><span class="bar"></span>Depletions
+        <span class="chip" style="margin-left:8px;">Weight 30% of total</span>
+      </div>
+      <div class="card" style="overflow-x:auto;">
+        <table class="data" id="dsipDeplTable"></table>
+        <div style="display:flex;gap:24px;margin-top:12px;font-size:12.5px;">
+          <span style="color:var(--text2);">Weighted depletion payout: <span id="deplPayout" class="mono" style="color:var(--text);font-weight:600;">0.00</span></span>
+          <span style="color:var(--text2);">Brands at goal: <span id="deplHits" class="mono" style="color:var(--text);font-weight:600;">0 of 9</span></span>
+        </div>
+      </div>
+
+      <!-- PODs -->
+      <div class="section-heading"><span class="bar"></span>PODs — all channels
+        <span class="chip" style="margin-left:8px;">Weight 10% of total</span>
+      </div>
+      <div class="card" style="overflow-x:auto;">
+        <table class="data" id="dsipPodTable"></table>
+        <div style="display:flex;gap:24px;margin-top:12px;font-size:12.5px;">
+          <span style="color:var(--text2);">SKUs hit: <span id="podHits" class="mono" style="color:var(--text);font-weight:600;">0</span></span>
+          <span style="color:var(--text2);">POD payout factor: <span id="podPayout" class="mono" style="color:var(--text);font-weight:600;">0.00</span></span>
+          <span style="color:var(--text3);font-size:11px;">Lookup: 5→.5 · 6→.6 · 7→.7 · 8→.85 · 9→1.0 · 10→1.2</span>
+        </div>
+      </div>
+
+      <!-- Contribution -->
+      <div class="section-heading"><span class="bar"></span>Selling contribution
+        <span class="chip" style="margin-left:8px;">Weight 10% of total</span>
+      </div>
+      <div class="card">
+        <div class="grid grid-4" style="gap:14px;">
+          <div><label class="field-label">H1 actual ($)</label><input id="contribActualH1" type="number" value="0" style="width:100%;"></div>
+          <div><label class="field-label">H1 plan ($)</label><input id="contribPlanH1" type="number" value="4265000" style="width:100%;"></div>
+          <div><label class="field-label">H2 actual ($)</label><input id="contribActualH2" type="number" value="0" style="width:100%;"></div>
+          <div><label class="field-label">H2 plan ($)</label><input id="contribPlanH2" type="number" value="4963000" style="width:100%;"></div>
+        </div>
+        <div style="display:flex;gap:24px;margin-top:14px;font-size:12.5px;flex-wrap:wrap;">
+          <span style="color:var(--text2);">H1 factor: <span id="contribPayoutH1" class="mono" style="color:var(--text);font-weight:600;">0.00</span></span>
+          <span style="color:var(--text2);">H2 factor: <span id="contribPayoutH2" class="mono" style="color:var(--text);font-weight:600;">0.00</span></span>
+          <span style="color:var(--text2);">FY % of goal: <span id="contribPctFY" class="mono" style="color:var(--text);font-weight:600;">0%</span></span>
+          <span style="color:var(--text3);font-size:11px;">Min threshold 90% · floor 25% · sliding to 100%</span>
+        </div>
+      </div>
+
+      <!-- Quarterly kickers -->
+      <div class="section-heading"><span class="bar"></span>Quarterly kickers
+        <span class="chip" style="margin-left:8px;">Capped $1,500 / quarter</span>
+      </div>
+      <div class="card" style="overflow-x:auto;">
+        <table class="data" id="dsipKickerTable"></table>
+        <div style="margin-top:12px;font-size:12.5px;color:var(--text2);">Total kicker payout: <span id="kickerPayout" class="mono" style="color:var(--text);font-weight:600;">$0</span></div>
+      </div>
+
+      <!-- Full-year roll-up -->
+      <div class="section-heading"><span class="bar"></span>Full-year roll-up
+        <span class="chip" style="margin-left:8px;">Earnbacks · PFP · FY kicker</span>
+      </div>
+      <div class="card">
+        <div class="panel-sub" style="margin-bottom:14px;">Earnbacks recover a half you missed if your full-year result still qualifies (depletions ≥ 97.5%, contribution ≥ 95%). Requires year-end and active employment. Mirrors the Year-End column of the source sheet.</div>
+        <table class="data" id="dsipRollupTable"></table>
+      </div>
+      <div class="grid grid-4" id="dsipFySummary" style="margin-top:16px;"></div>
+      <div id="dsipRollupNote" style="font-size:11.5px;color:var(--warning);margin-top:12px;line-height:1.5;"></div>
     </div>
 
     <!-- ===== SETTINGS ===== -->
@@ -1021,8 +1143,277 @@ function renderHistory(){
     <thead><tr><th>File</th><th>Rows</th><th>Date</th><th>Status</th></tr></thead>
     <tbody>${state.importHistory.map(h=>`<tr><td>${h.file}</td><td class="mono">${h.rows}</td><td>${h.date}</td><td><span class="pill" style="display:inline-flex;">${h.status}</span></td></tr>`).join('')}</tbody>`;
 }
-renderTemplates();
-renderHistory();
+/* ============================================================
+   DSIP PAYOUT CALCULATOR — exact reproduction of Excel formulas
+   ============================================================ */
+const dsipState = {
+  // each brand carries H1 and H2 actuals + plans so earnbacks can use both halves
+  depl: [
+    {name:'Brand 1', weight:0.20, aH1:0, aH2:0, pH1:170000, pH2:190000},
+    {name:'Brand 2', weight:0.10, aH1:0, aH2:0, pH1:14000,  pH2:15000},
+    {name:'Brand 3', weight:0.20, aH1:0, aH2:0, pH1:11000,  pH2:12800},
+    {name:'Brand 4', weight:0.10, aH1:0, aH2:0, pH1:1500,   pH2:2600},
+    {name:'Brand 5', weight:0.10, aH1:0, aH2:0, pH1:2200,   pH2:2500},
+    {name:'Brand 6', weight:0.10, aH1:0, aH2:0, pH1:1600,   pH2:1900},
+    {name:'Brand 7', weight:0.05, aH1:0, aH2:0, pH1:1700,   pH2:1900},
+    {name:'Brand 8', weight:0.05, aH1:0, aH2:0, pH1:5500,   pH2:5700},
+    {name:'On-Premise', weight:0.10, aH1:0, aH2:0, pH1:4500, pH2:5100},
+  ],
+  pod: [
+    {name:'POD SKU 1', aH1:0, aH2:0, pH1:1650,  pH2:2600},
+    {name:'POD SKU 2', aH1:0, aH2:0, pH1:500,   pH2:990},
+    {name:'POD SKU 3', aH1:0, aH2:0, pH1:2550,  pH2:3130},
+    {name:'POD SKU 4', aH1:0, aH2:0, pH1:5600,  pH2:7360},
+    {name:'POD SKU 5', aH1:0, aH2:0, pH1:45,    pH2:160},
+    {name:'POD SKU 6', aH1:0, aH2:0, pH1:1720,  pH2:2500},
+    {name:'POD SKU 7', aH1:0, aH2:0, pH1:600,   pH2:1030},
+    {name:'POD SKU 8', aH1:0, aH2:0, pH1:120,   pH2:380},
+    {name:'POD SKU 9', aH1:0, aH2:0, pH1:960,   pH2:1470},
+    {name:'POD SKU 10', aH1:0, aH2:0, pH1:745,  pH2:1135},
+  ],
+  // four quarters, each capped at $1,500
+  kickers: [
+    {q:'Q1', name:'Kicker line', rate:5, units:0},
+    {q:'Q2', name:'Kicker line', rate:5, units:0},
+    {q:'Q3', name:'Kicker line', rate:5, units:0},
+    {q:'Q4', name:'Kicker line', rate:10, units:0},
+  ],
+  W_DEPL:0.30, W_POD:0.10, W_CONTRIB:0.10,
+  FY_KICKER_RATE:600, // $ per FY contribution point over 100% (Excel S47)
+};
+
+function deplTierPayout(actual, plan, weight){
+  if(plan <= 0) return 0;
+  const pct = Math.round((actual/plan)*100)/100;
+  const pct3 = Math.round((actual/plan)*1000)/1000;
+  if(pct >= 1.00) return weight;
+  if(pct3 >= 0.975) return weight*0.75;
+  if(pct >= 0.95) return weight*0.50;
+  return 0;
+}
+function podLookup(hitCount){
+  const table = [[5,0.5],[6,0.6],[7,0.7],[8,0.85],[9,1.0],[10,1.2]];
+  let result = 0;
+  for(const [k,v] of table){ if(hitCount >= k) result = v; }
+  return result;
+}
+const ContribMinThreshold = 0.9, ContribPctMin = 0.25;
+function contribPayoutFactor(actual, plan, weight){
+  if(plan <= 0) return 0;
+  const ratio = actual/plan;
+  let raw = ratio < ContribMinThreshold ? 0
+    : (weight*ContribPctMin) + ((weight - weight*ContribPctMin) * (Math.max(ratio-ContribMinThreshold,0)/0.1));
+  return weight > 0 ? Math.min(raw, weight)/weight : 0;
+}
+// Depletion earnback per brand — Excel S15 logic
+function deplEarnback(aH1,pH1,aH2,pH2,weight,eligH1,eligH2,yearEnd,notTermed){
+  const fyPlan = pH1 + pH2;
+  if(fyPlan<=0) return 0;
+  const fyPct3 = Math.round(((aH1+aH2)/fyPlan)*1000)/1000;
+  if(!(yearEnd && notTermed && fyPct3 >= 0.975)) return 0;
+  const fRound = pH1>0 ? Math.round((aH1/pH1)*100)/100 : 0;
+  const m      = pH2>0 ? Math.round((aH2/pH2)*100)/100 : 0;
+  const recovered = (weight+weight) - (deplTierPayout(aH1,pH1,weight)+deplTierPayout(aH2,pH2,weight));
+  return (fRound>1 && m<1) ? recovered*eligH1 : recovered*eligH2;
+}
+// Contribution earnback — Excel S46 logic
+function contribEarnback(aH1,pH1,aH2,pH2,w,eligH1,eligH2,yearEnd,notTermed){
+  const fyPlan=pH1+pH2;
+  if(fyPlan<=0) return 0;
+  const r46 = (aH1+aH2)/fyPlan;
+  if(!(yearEnd && notTermed && r46 >= 0.95)) return 0;
+  const g46 = contribPayoutFactor(aH1,pH1,w), n46 = contribPayoutFactor(aH2,pH2,w);
+  const recovered = (w+w) - (g46*w + n46*w);
+  const f46 = pH1>0 ? aH1/pH1 : 0, m46 = pH2>0 ? aH2/pH2 : 0;
+  return (f46>1 && m46<1) ? recovered*eligH1 : recovered*eligH2;
+}
+// FY contribution kicker $ — Excel T47 * R5
+function fyContribKickerDollars(fyActual,fyPlan,ratePerPoint,fyElig){
+  const r46 = fyPlan>0 ? fyActual/fyPlan : 0;
+  const t47 = ratePerPoint >= 1 ? Math.max(r46-1,0)*100*ratePerPoint : Math.max((fyActual-fyPlan)*ratePerPoint,0);
+  return t47 * fyElig;
+}
+
+function currentHalf(){ return document.getElementById('dsipHalf').value; }
+function num(id){ return parseFloat(document.getElementById(id).value)||0; }
+
+function renderDsip(){
+  const half = currentHalf();
+  const isH1 = half==='H1';
+  const aKey = isH1?'aH1':'aH2', pKey = isH1?'pH1':'pH2';
+
+  // ---- Depletions (current half view) ----
+  let deplPayout = 0, deplHits = 0, deplTotal = 0;
+  const deplRows = dsipState.depl.map((b,i)=>{
+    const plan = b[pKey], actual = b[aKey];
+    const pct = plan>0 ? actual/plan : 0;
+    const payout = deplTierPayout(actual, plan, b.weight);
+    deplPayout += payout;
+    if(pct >= 1) deplHits++;
+    if(plan>0) deplTotal++;
+    const pctColor = pct>=1?'#10B981':pct>=0.95?'#F59E0B':'#EF4444';
+    return `<tr>
+      <td>${b.name}</td>
+      <td class="mono">${(b.weight*100).toFixed(0)}%</td>
+      <td><input type="number" value="${actual}" data-dtype="depl" data-i="${i}" style="width:110px;padding:5px 8px;"></td>
+      <td class="mono" style="color:var(--text2);">${plan.toLocaleString()}</td>
+      <td class="mono" style="color:${pctColor};">${(pct*100).toFixed(1)}%</td>
+      <td class="mono">${payout.toFixed(3)}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('dsipDeplTable').innerHTML =
+    `<thead><tr><th>Brand</th><th>Weight</th><th>${half} actual</th><th>${half} plan</th><th>% of goal</th><th>Payout</th></tr></thead><tbody>${deplRows}</tbody>`;
+  document.getElementById('deplPayout').textContent = deplPayout.toFixed(3);
+  document.getElementById('deplHits').textContent = `${deplHits} of ${deplTotal}`;
+
+  // ---- PODs (current half view) ----
+  let podHits = 0;
+  const podRows = dsipState.pod.map((p,i)=>{
+    const plan = p[pKey], actual = p[aKey];
+    const pct = plan>0 ? Math.round((actual/plan)*100)/100 : 0;
+    const hit = pct >= 1;
+    if(hit) podHits++;
+    return `<tr>
+      <td>${p.name}</td>
+      <td><input type="number" value="${actual}" data-dtype="pod" data-i="${i}" style="width:110px;padding:5px 8px;"></td>
+      <td class="mono" style="color:var(--text2);">${plan.toLocaleString()}</td>
+      <td class="mono">${(pct*100).toFixed(0)}%</td>
+      <td style="color:${hit?'#10B981':'#5B6677'};font-weight:700;">${hit?'✓':'—'}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('dsipPodTable').innerHTML =
+    `<thead><tr><th>SKU</th><th>${half} actual</th><th>${half} plan</th><th>% of goal</th><th>Hit</th></tr></thead><tbody>${podRows}</tbody>`;
+  const podFactor = podLookup(podHits);
+  document.getElementById('podHits').textContent = podHits;
+  document.getElementById('podPayout').textContent = podFactor.toFixed(2);
+
+  // ---- Contribution (both halves) ----
+  const cAH1=num('contribActualH1'), cPH1=num('contribPlanH1'), cAH2=num('contribActualH2'), cPH2=num('contribPlanH2');
+  const cFactorH1 = contribPayoutFactor(cAH1, cPH1, dsipState.W_CONTRIB);
+  const cFactorH2 = contribPayoutFactor(cAH2, cPH2, dsipState.W_CONTRIB);
+  const cFactor = isH1 ? cFactorH1 : cFactorH2;
+  const fyContribPct = (cPH1+cPH2)>0 ? (cAH1+cAH2)/(cPH1+cPH2) : 0;
+  document.getElementById('contribPayoutH1').textContent = cFactorH1.toFixed(2);
+  document.getElementById('contribPayoutH2').textContent = cFactorH2.toFixed(2);
+  document.getElementById('contribPctFY').textContent = (fyContribPct*100).toFixed(1)+'%';
+
+  // ---- Kickers (4 quarters, each capped $1,500) ----
+  let kH1=0, kH2=0;
+  const kickerRows = dsipState.kickers.map((k,i)=>{
+    const raw = k.rate * k.units;
+    const capped = Math.min(raw, 1500);
+    if(k.q==='Q1'||k.q==='Q2') kH1 += capped; else kH2 += capped;
+    return `<tr>
+      <td><span class="chip">${k.q}</span></td>
+      <td><input type="number" value="${k.rate}" data-dtype="krate" data-i="${i}" style="width:80px;padding:5px 8px;"> <span style="color:var(--text3);font-size:11px;">$/cs</span></td>
+      <td><input type="number" value="${k.units}" data-dtype="kunits" data-i="${i}" style="width:100px;padding:5px 8px;"></td>
+      <td class="mono">$${capped.toLocaleString()}${raw>1500?` <span style="color:var(--warning);font-size:10px;">(cap)</span>`:''}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('dsipKickerTable').innerHTML =
+    `<thead><tr><th>Quarter</th><th>Rate</th><th>Units</th><th>Payout (cap $1.5k)</th></tr></thead><tbody>${kickerRows}</tbody>`;
+  const kickerTotal = kH1 + kH2;
+  document.getElementById('kickerPayout').textContent =
+    `$${kickerTotal.toLocaleString()}  ·  H1 $${kH1.toLocaleString()} / H2 $${kH2.toLocaleString()}`;
+
+  // ---- Inputs ----
+  const salary = num('dsipSalary'), target = num('dsipTarget')/100;
+  const eligH1 = num('dsipEligH1'), eligH2 = num('dsipEligH2'), eligFY = num('dsipEligFY');
+  const pfpOutcome = num('dsipPfpOutcome');
+  const yearEnd = document.getElementById('dsipYearEnd').value==='yes';
+
+  // ---- Net factors per half (Excel G9/N9 — half weights cancel, so net = sum of KPI*weight) ----
+  // recompute each half independently for the dollar roll-up
+  function halfNetFactor(which){
+    const ak = which==='H1'?'aH1':'aH2', pk = which==='H1'?'pH1':'pH2';
+    let dp=0; dsipState.depl.forEach(b=> dp += deplTierPayout(b[ak], b[pk], b.weight));
+    let ph=0; dsipState.pod.forEach(p=>{ const pl=p[pk]; if(pl>0 && Math.round((p[ak]/pl)*100)/100>=1) ph++; });
+    const pf = podLookup(ph);
+    const cf = which==='H1'?cFactorH1:cFactorH2;
+    return dp*dsipState.W_DEPL + pf*dsipState.W_POD + cf*dsipState.W_CONTRIB;
+  }
+  const netH1 = halfNetFactor('H1'), netH2 = halfNetFactor('H2');
+  const dollarH1 = salary * target * netH1 * eligH1;
+  const dollarH2 = salary * target * netH2 * eligH2;
+
+  // ---- Earnbacks ----
+  let deplEarnSum = 0;
+  dsipState.depl.forEach(b=> deplEarnSum += deplEarnback(b.aH1,b.pH1,b.aH2,b.pH2,b.weight,eligH1,eligH2,yearEnd,true));
+  const deplEarnFactor = deplEarnSum * dsipState.W_DEPL;            // Excel R7 intent: SUM × N61
+  const contribEarnFactor = contribEarnback(cAH1,cPH1,cAH2,cPH2,dsipState.W_CONTRIB,eligH1,eligH2,yearEnd,true); // R8
+  const deplEarnDollars = salary * target * deplEarnFactor;
+  const contribEarnDollars = salary * target * contribEarnFactor;
+
+  // ---- PFP + FY contribution kicker ----
+  const pfpFactor = 0 * pfpOutcome * eligFY;                       // S65=0 in plan; PFP weight zero
+  const pfpDollars = salary * target * pfpFactor;
+  const fyKickerDollars = fyContribKickerDollars(cAH1+cAH2, cPH1+cPH2, dsipState.FY_KICKER_RATE, eligFY);
+
+  // ---- Current-half summary cards ----
+  const halfNet = isH1?netH1:netH2, halfDollar = isH1?dollarH1:dollarH2, halfKicker = isH1?kH1:kH2;
+  document.getElementById('dsipSummary').innerHTML = `
+    <div class="card"><div class="kpi-label">${half} net factor</div><div class="kpi-value" style="color:#3B82F6;">${(halfNet*100).toFixed(1)}%</div><div class="kpi-foot neutral">of ${(target*100).toFixed(0)}% target</div></div>
+    <div class="card"><div class="kpi-label">Depletion contribution</div><div class="kpi-value">${(deplPayout*dsipState.W_DEPL*100).toFixed(1)}%</div><div class="kpi-foot neutral">${deplHits}/${deplTotal} brands at goal</div></div>
+    <div class="card"><div class="kpi-label">Est. ${half} payout</div><div class="kpi-value" style="color:#10B981;">$${Math.round(halfDollar).toLocaleString()}</div><div class="kpi-foot neutral">salary × target × factor</div></div>
+    <div class="card"><div class="kpi-label">${half} incl. kickers</div><div class="kpi-value" style="color:#06B6D4;">$${Math.round(halfDollar+halfKicker).toLocaleString()}</div><div class="kpi-foot up">+ $${halfKicker.toLocaleString()} kicker</div></div>
+  `;
+
+  // ---- Full-year roll-up table ----
+  const rows = [
+    ['H1 base payout', `$${Math.round(dollarH1).toLocaleString()}`, 'salary × target × H1 net × H1 elig'],
+    ['H2 base payout', `$${Math.round(dollarH2).toLocaleString()}`, 'salary × target × H2 net × H2 elig'],
+    ['Depletion earnback', `$${Math.round(deplEarnDollars).toLocaleString()}`, yearEnd?'recovered missed-half depletion':'off (mid-year)'],
+    ['Contribution earnback', `$${Math.round(contribEarnDollars).toLocaleString()}`, yearEnd?'recovered missed-half contribution':'off (mid-year)'],
+    ['PFP', `$${Math.round(pfpDollars).toLocaleString()}`, 'PFP weight 0 in this plan'],
+    ['Quarterly kickers (H1+H2)', `$${kickerTotal.toLocaleString()}`, 'each quarter capped $1,500'],
+    ['FY contribution kicker', `$${Math.round(fyKickerDollars).toLocaleString()}`, `$${dsipState.FY_KICKER_RATE}/pt over 100% × FY elig`],
+  ];
+  document.getElementById('dsipRollupTable').innerHTML =
+    `<thead><tr><th>Component</th><th>Amount</th><th>Basis</th></tr></thead><tbody>${
+      rows.map(r=>`<tr><td>${r[0]}</td><td class="mono" style="color:var(--text);font-weight:600;">${r[1]}</td><td style="color:var(--text2);font-size:11.5px;">${r[2]}</td></tr>`).join('')
+    }</tbody>`;
+
+  const fyTotal = dollarH1 + dollarH2 + deplEarnDollars + contribEarnDollars + pfpDollars + kickerTotal + fyKickerDollars;
+  const fyNetFactor = netH1*eligH1 + netH2*eligH2 + deplEarnFactor + contribEarnFactor + pfpFactor;
+  document.getElementById('dsipFySummary').innerHTML = `
+    <div class="card"><div class="kpi-label">FY net factor</div><div class="kpi-value" style="color:#3B82F6;">${(fyNetFactor*100).toFixed(1)}%</div><div class="kpi-foot neutral">H1+H2+earnbacks+PFP</div></div>
+    <div class="card"><div class="kpi-label">Earnbacks total</div><div class="kpi-value" style="color:#F59E0B;">$${Math.round(deplEarnDollars+contribEarnDollars).toLocaleString()}</div><div class="kpi-foot neutral">${yearEnd?'active':'off (mid-year)'}</div></div>
+    <div class="card"><div class="kpi-label">FY contribution kicker</div><div class="kpi-value">$${Math.round(fyKickerDollars).toLocaleString()}</div><div class="kpi-foot neutral">over-100% bonus</div></div>
+    <div class="card" style="border:1px solid rgba(16,185,129,.3);"><div class="kpi-label">Full-year total</div><div class="kpi-value" style="color:#10B981;">$${Math.round(fyTotal).toLocaleString()}</div><div class="kpi-foot up">all components</div></div>
+  `;
+
+  document.getElementById('dsipRollupNote').textContent =
+    'Source-sheet note: the Year-End "Depl Earnbacks" cell (R7) references a single brand row rather than the full range, which looks like a truncation error. MacBane sums all brand earnbacks (the apparent intent). Verify the official total against your comp team before relying on it. The H2 quarterly kicker cap is applied here for consistency; the source sheet shows the $1,500 cap only on Q1/Q2.';
+
+  // dashboard mirror — now full-year
+  const dashEl = document.getElementById('dsipDashCard');
+  if(dashEl){
+    dashEl.innerHTML = `
+      <div class="kpi-label">DSIP full-year estimated payout</div>
+      <div class="kpi-value" style="color:#10B981;">$${Math.round(fyTotal).toLocaleString()}</div>
+      <div class="progress-track"><div class="progress-fill" style="width:${Math.min(100,fyNetFactor*100).toFixed(0)}%;background:linear-gradient(90deg,#10B981,#06B6D4);"></div></div>
+      <div class="kpi-foot neutral" style="margin-top:8px;">${(fyNetFactor*100).toFixed(1)}% factor · H1 $${Math.round(dollarH1).toLocaleString()} + H2 $${Math.round(dollarH2).toLocaleString()}</div>`;
+  }
+}
+
+// input delegation
+document.getElementById('sec-dsip').addEventListener('input', (e)=>{
+  const t = e.target;
+  if(t.dataset.dtype){
+    const i = parseInt(t.dataset.i);
+    const v = parseFloat(t.value)||0;
+    const half = currentHalf(), aKey = half==='H1'?'aH1':'aH2';
+    if(t.dataset.dtype==='depl') dsipState.depl[i][aKey] = v;
+    else if(t.dataset.dtype==='pod') dsipState.pod[i][aKey] = v;
+    else if(t.dataset.dtype==='krate') dsipState.kickers[i].rate = v;
+    else if(t.dataset.dtype==='kunits') dsipState.kickers[i].units = v;
+  }
+  renderDsip();
+});
+document.getElementById('dsipHalf').addEventListener('change', renderDsip);
+document.getElementById('dsipYearEnd').addEventListener('change', renderDsip);
+renderDsip();
+
 </script>
 </body>
 </html>
