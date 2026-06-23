@@ -451,11 +451,7 @@ label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:bloc
       <div class="tabs" id="goalTabs">
         <div class="tab active" data-cat="All">All</div>
         <div class="tab" data-cat="Sales">Sales</div>
-        <div class="tab" data-cat="Financial">Financial</div>
-        <div class="tab" data-cat="Fitness">Fitness</div>
-        <div class="tab" data-cat="Health">Health</div>
-        <div class="tab" data-cat="Learning">Learning</div>
-        <div class="tab" data-cat="Personal">Personal</div>
+        <div class="tab" data-cat="Professional">Professional</div>
       </div>
       <div id="goalList"></div>
     </div>
@@ -720,8 +716,7 @@ label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:bloc
     <div class="panel-title" style="margin-bottom:16px;">New goal</div>
     <label class="field-label">Category</label>
     <select id="newGoalCat" style="width:100%;margin-bottom:12px;">
-      <option>Professional</option><option>Sales</option><option>Financial</option>
-      <option>Fitness</option><option>Health</option><option>Learning</option><option>Personal</option>
+      <option>Professional</option><option>Sales</option>
     </select>
     <label class="field-label">Goal name</label>
     <input id="newGoalName" style="width:100%;margin-bottom:12px;" placeholder="e.g. Hit 14,000 9L cases for the year">
@@ -779,15 +774,6 @@ const state = {
   goals: [
     {id:1,cat:'Sales',name:'Reach 15,200 9L cases — FY26',target:15200,current:11430,deadline:'2026-12-31'},
     {id:2,cat:'Sales',name:'Open 40 new PODs in Kroger/Meijer',target:40,current:27,deadline:'2026-09-30'},
-    {id:3,cat:'Financial',name:'Max out 401k contribution',target:23500,current:14200,deadline:'2026-12-31'},
-    {id:4,cat:'Financial',name:'Emergency fund — 6 months expenses',target:36000,current:22000,deadline:'2027-01-01'},
-    {id:5,cat:'Fitness',name:'Vault Lifter program — full 10 months',target:10,current:6,deadline:'2026-11-01'},
-    {id:6,cat:'Fitness',name:'Deadlift 405 lb',target:405,current:365,deadline:'2026-10-15'},
-    {id:7,cat:'Health',name:'MEDAS score — average 11+/14',target:11,current:8.6,deadline:'2026-12-31'},
-    {id:8,cat:'Health',name:'Resting heart rate under 60bpm',target:60,current:64,deadline:'2026-09-01'},
-    {id:9,cat:'Personal',name:'DeWitt native garden — phase 2 planting',target:120,current:78,deadline:'2026-08-15'},
-    {id:10,cat:'Learning',name:'Complete advanced wine certification',target:4,current:2,deadline:'2027-03-01'},
-    {id:11,cat:'Professional',name:'Close out HealthPad medication-food module',target:1,current:0.7,deadline:'2026-07-15'},
   ],
   templates: [
     {name:'Kroger weekly depletions',cols:['Account','Brand','9L Cases','Week Ending'],date:'2026-06-10'},
@@ -918,7 +904,7 @@ function statusFor(pct){
   return {label:'At risk',color:COLORS.danger,bg:'rgba(239,68,68,.12)'};
 }
 function catColor(cat){
-  const map = {Sales:COLORS.blue,Financial:COLORS.success,Fitness:COLORS.danger,Health:COLORS.cyan,Learning:COLORS.warning,Personal:'#A78BFA',Professional:'#5B6677'};
+  const map = {Sales:COLORS.blue,Professional:'#5B6677'};
   return map[cat]||COLORS.text2;
 }
 function renderGoals(filter){
@@ -1005,7 +991,7 @@ async function loadGoalsFromSheets(){
     if(rows && rows.length){
       state.goals = rows.map(r=>({
         id: r.ID || Date.now()+Math.random(),
-        cat: r.category || 'Personal',
+        cat: r.category || 'Professional',
         name: r.title || '(untitled goal)',
         target: parseFloat(r.target)||100,
         current: parseFloat(r.progress)||0,
