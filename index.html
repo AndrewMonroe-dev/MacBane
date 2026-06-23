@@ -43,6 +43,31 @@ html,body{
 ::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:4px;}
 ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.15);}
 
+/* ===== INTRO SCREEN ===== */
+#introScreen{
+  position:fixed;inset:0;z-index:100;
+  background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;
+}
+#introLogo{
+  width:96px;height:96px;object-fit:contain;border-radius:18px;
+}
+#introFallback{
+  display:none;width:96px;height:96px;border-radius:18px;
+  background:linear-gradient(135deg,var(--blue),var(--cyan));
+  align-items:center;justify-content:center;
+  font-weight:800;font-size:38px;color:#06121f;
+}
+#introName{
+  font-size:24px;font-weight:700;letter-spacing:-.3px;margin-top:6px;
+}
+#introTag{
+  font-size:13px;color:var(--text2);letter-spacing:.3px;margin-bottom:14px;
+}
+#introScreen.hidden{display:none;}
+#app.hidden{display:none;}
+
 /* ===== APP SHELL ===== */
 #app{display:grid;grid-template-columns:240px 1fr 320px;height:100vh;}
 @media (max-width:1200px){#app{grid-template-columns:220px 1fr 0px;}#rightPanel{display:none;}}
@@ -290,7 +315,17 @@ label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:bloc
 </head>
 <body>
 
+<!-- ===== INTRO SCREEN ===== -->
+<div id="introScreen">
+  <img src="MacBaneLogo.png" alt="MacBane" id="introLogo" onerror="this.style.display='none';document.getElementById('introFallback').style.display='flex';">
+  <div id="introFallback">M</div>
+  <div id="introName">MacBane</div>
+  <div id="introTag">Executive intelligence terminal</div>
+  <button class="btn btn-primary" id="introEnter">Enter dashboard</button>
+</div>
+
 <div id="app">
+
 
   <!-- ============ SIDEBAR ============ -->
   <div id="sidebar">
@@ -1413,6 +1448,19 @@ document.getElementById('sec-dsip').addEventListener('input', (e)=>{
 document.getElementById('dsipHalf').addEventListener('change', renderDsip);
 document.getElementById('dsipYearEnd').addEventListener('change', renderDsip);
 renderDsip();
+
+/* ============================================================
+   INTRO SCREEN
+   ============================================================ */
+document.getElementById('app').classList.add('hidden');
+document.getElementById('introEnter').addEventListener('click', enterDashboard);
+document.getElementById('introScreen').addEventListener('click', (e)=>{
+  if(e.target.id === 'introScreen') enterDashboard();
+});
+function enterDashboard(){
+  document.getElementById('introScreen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+}
 
 </script>
 </body>
