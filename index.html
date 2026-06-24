@@ -52,20 +52,49 @@ html,body{
 }
 #introLogo{
   width:96px;height:96px;object-fit:contain;border-radius:18px;
+  opacity:0;filter:blur(18px);transform:scale(.55);
+  animation:logoMaterialize 2.2s cubic-bezier(.16,.9,.2,1) forwards;
 }
 #introFallback{
   display:none;width:96px;height:96px;border-radius:18px;
   background:linear-gradient(135deg,var(--blue),var(--cyan));
   align-items:center;justify-content:center;
   font-weight:800;font-size:38px;color:#06121f;
+  opacity:0;filter:blur(18px);transform:scale(.55);
+  animation:logoMaterialize 2.2s cubic-bezier(.16,.9,.2,1) forwards;
 }
 #introName{
   font-size:24px;font-weight:700;letter-spacing:-.3px;margin-top:6px;
+  opacity:0;transform:translateY(6px);
+  animation:introFadeUp .7s ease forwards;
+  animation-delay:1.5s;
 }
 #introTag{
   font-size:13px;color:var(--text2);letter-spacing:.3px;margin-bottom:14px;
+  opacity:0;transform:translateY(6px);
+  animation:introFadeUp .7s ease forwards;
+  animation-delay:1.75s;
+}
+#introEnter{
+  opacity:0;
+  animation:introFadeUp .7s ease forwards;
+  animation-delay:2s;
+}
+@keyframes logoMaterialize{
+  0%{opacity:0;filter:blur(18px);transform:scale(.55);}
+  55%{opacity:.85;filter:blur(4px);transform:scale(1.04);}
+  100%{opacity:1;filter:blur(0);transform:scale(1);}
+}
+@keyframes introFadeUp{
+  to{opacity:1;transform:translateY(0);}
 }
 #introScreen.hidden{display:none;}
+#introScreen.leaving{
+  animation:introFadeOut .5s ease forwards;
+}
+@keyframes introFadeOut{
+  to{opacity:0;}
+}
 #app.hidden{display:none;}
 
 /* ===== APP SHELL ===== */
@@ -348,7 +377,7 @@ label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:bloc
       <span class="ic">▲</span> Sales metrics
     </div>
     <div class="navitem" data-route="dsip">
-      <span class="ic">$</span> DSIP payout
+      <span class="ic">$</span> BONUS payout
     </div>
     <div class="navitem" data-route="distributors">
       <span class="ic">◆</span> Distributors
@@ -376,7 +405,7 @@ label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:bloc
     <div class="sidebar-footer">
       <div class="avatar">AM</div>
       <div>
-        <div class="user-name">Andrew Monroe</div>
+        <div class="user-name">Sales Manager</div>
         <div class="user-role">Area Sales Manager</div>
       </div>
     </div>
@@ -390,7 +419,7 @@ label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:bloc
       <div class="topbar">
         <div>
           <div class="page-title">Executive overview</div>
-          <div class="page-sub">Michigan territory · Delicato Family Wines · <span id="liveClock" class="mono"></span></div>
+          <div class="page-sub">Territory 1 · Company 1 · <span id="liveClock" class="mono"></span></div>
         </div>
         <div class="topbar-right">
           <div class="pill"><span class="dot"></span> Live data</div>
@@ -418,13 +447,13 @@ label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:bloc
         </div>
       </div>
 
-      <div class="section-heading"><span class="bar"></span>DSIP payout tracker</div>
+      <div class="section-heading"><span class="bar"></span>BONUS payout tracker</div>
       <div class="grid grid-3">
         <div class="card" id="dsipDashCard" style="cursor:pointer;" onclick="route('dsip')"></div>
         <div class="card" style="cursor:pointer;" onclick="route('dsip')">
           <div class="kpi-label">Open full calculator</div>
           <div style="font-size:13px;color:var(--text2);margin-top:10px;line-height:1.5;">Enter depletions, PODs, contribution, and quarterly kickers to model your H1/H2 payout.</div>
-          <button class="btn" style="margin-top:12px;">Open DSIP →</button>
+          <button class="btn" style="margin-top:12px;">Open BONUS →</button>
         </div>
         <div class="card">
           <div class="kpi-label">How it works</div>
@@ -478,7 +507,7 @@ label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:bloc
     <!-- ===== DISTRIBUTORS ===== -->
     <div class="section" id="sec-distributors">
       <div class="topbar">
-        <div><div class="page-title">Distributors</div><div class="page-sub">Alliance Beverage Distributing — execution scorecard</div></div>
+        <div><div class="page-title">Distributors</div><div class="page-sub">Distributor 1 — execution scorecard</div></div>
       </div>
       <div class="grid grid-3" id="distCards"></div>
       <div class="section-heading"><span class="bar"></span>Weighted scorecard</div>
@@ -520,7 +549,7 @@ label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:bloc
         </div>
 
         <div style="margin-top:16px;display:flex;gap:10px;align-items:center;">
-          <input id="templateName" placeholder="Template name (e.g. Kroger weekly depletions)" style="width:280px;">
+          <input id="templateName" placeholder="Template name (e.g. Retailer 1 weekly depletions)" style="width:280px;">
           <button class="btn" onclick="saveTemplate()">Save as template</button>
           <button class="btn btn-primary" onclick="confirmImport()">Confirm import</button>
           <span id="importStatus" style="font-size:12px;color:var(--success);font-weight:600;"></span>
@@ -552,11 +581,11 @@ label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:bloc
       <div id="insightFull"></div>
     </div>
 
-    <!-- ===== DSIP PAYOUT CALCULATOR ===== -->
+    <!-- ===== BONUS PAYOUT CALCULATOR ===== -->
     <div class="section" id="sec-dsip">
       <div class="topbar">
         <div>
-          <div class="page-title">DSIP payout calculator</div>
+          <div class="page-title">BONUS payout calculator</div>
           <div class="page-sub">Enter actuals against plan — payout recalculates live. All names and numbers are placeholders.</div>
         </div>
         <div class="topbar-right">
@@ -666,11 +695,11 @@ label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:bloc
           <div class="panel-title">Profile</div>
           <div class="panel-sub">Executive identity</div>
           <label class="field-label">Name</label>
-          <input value="Andrew Monroe" style="width:100%;margin-bottom:10px;">
+          <input value="Sales Manager" style="width:100%;margin-bottom:10px;">
           <label class="field-label">Title</label>
-          <input value="Area Sales Manager — Michigan" style="width:100%;margin-bottom:10px;">
+          <input value="Area Sales Manager" style="width:100%;margin-bottom:10px;">
           <label class="field-label">Company</label>
-          <input value="Delicato Family Wines" style="width:100%;">
+          <input value="Company 1" style="width:100%;">
         </div>
         <div class="card">
           <div class="panel-title">Data sources</div>
@@ -774,15 +803,15 @@ async function gsPost(body){
 const state = {
   goals: [
     {id:1,cat:'Sales',name:'Reach 15,200 9L cases — FY26',target:15200,current:11430,deadline:'2026-12-31'},
-    {id:2,cat:'Sales',name:'Open 40 new PODs in Kroger/Meijer',target:40,current:27,deadline:'2026-09-30'},
+    {id:2,cat:'Sales',name:'Open 40 new PODs in Retailer 1/Retailer 2',target:40,current:27,deadline:'2026-09-30'},
   ],
   templates: [
-    {name:'Kroger weekly depletions',cols:['Account','Brand','9L Cases','Week Ending'],date:'2026-06-10'},
-    {name:'Spartan Nash monthly POD report',cols:['Store #','Item','POD Status','Region'],date:'2026-06-02'},
+    {name:'Retailer 1 weekly depletions',cols:['Account','Brand','9L Cases','Week Ending'],date:'2026-06-10'},
+    {name:'Retailer 5 monthly POD report',cols:['Store #','Item','POD Status','Region'],date:'2026-06-02'},
   ],
   importHistory: [
-    {file:'kroger_depletions_wk24.xlsx',rows:340,date:'2026-06-16',status:'Synced'},
-    {file:'meijer_pods_june.csv',rows:88,date:'2026-06-12',status:'Synced'},
+    {file:'retailer1_depletions_wk24.xlsx',rows:340,date:'2026-06-16',status:'Synced'},
+    {file:'retailer2_pods_june.csv',rows:88,date:'2026-06-12',status:'Synced'},
     {file:'total_wine_features.xlsx',rows:52,date:'2026-06-05',status:'Synced'},
   ],
   pendingImport: null
@@ -881,7 +910,7 @@ new Chart(document.getElementById('catChart'),{
 
 new Chart(document.getElementById('acctChart'),{
   type:'bar',
-  data:{labels:['Meijer #142','Kroger #318','Total Wine - Troy','Walmart #2210','Spartan Nash #66'],
+  data:{labels:['Retailer 2 #142','Retailer 1 #318','Retailer 6 - Store A','Retailer 3 #2210','Retailer 5 #66'],
     datasets:[{data:[820,710,690,540,470],backgroundColor:COLORS.blue,borderRadius:5}]},
   options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
     scales:{x:{grid:{color:'rgba(255,255,255,.04)'}},y:{grid:{display:false}}}}
@@ -889,7 +918,7 @@ new Chart(document.getElementById('acctChart'),{
 
 new Chart(document.getElementById('brandChart'),{
   type:'bar',
-  data:{labels:['Bota Box','FF Coppola Diamond','Black Stallion','Stoneleigh','Other DFW'],
+  data:{labels:['Brand 1','Brand 2','Brand 3','Brand 4','Other'],
     datasets:[{data:[4200,3100,2400,1300,430],backgroundColor:[COLORS.blue,COLORS.cyan,COLORS.success,COLORS.warning,'#5B6677'],borderRadius:6}]},
   options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
     scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(255,255,255,.04)'}}}}
@@ -1016,19 +1045,19 @@ loadGoalsFromSheets();
    CHAIN / DISTRIBUTOR / ACCOUNT TABLES
    ============================================================ */
 const chainData = [
-  ['Kroger','3,420','+5.1%','312','68%'],
-  ['Meijer','2,810','+3.4%','268','71%'],
-  ['Walmart','1,990','-1.2%','190','54%'],
-  ['Target','1,340','+2.0%','140','59%'],
-  ['Spartan Nash','980','+6.7%','98','62%'],
-  ['Total Wine','870','+8.9%','64','77%'],
+  ['Retailer 1','3,420','+5.1%','312','68%'],
+  ['Retailer 2','2,810','+3.4%','268','71%'],
+  ['Retailer 3','1,990','-1.2%','190','54%'],
+  ['Retailer 4','1,340','+2.0%','140','59%'],
+  ['Retailer 5','980','+6.7%','98','62%'],
+  ['Retailer 6','870','+8.9%','64','77%'],
 ];
 document.getElementById('chainTable').innerHTML = `
   <thead><tr><th>Chain</th><th>9L Cases</th><th>MoM</th><th>PODs</th><th>Feature exec.</th></tr></thead>
   <tbody>${chainData.map(r=>`<tr><td>${r[0]}</td><td class="mono">${r[1]}</td><td style="color:${r[2][0]==='+'?'#10B981':'#EF4444'};">${r[2]}</td><td class="mono">${r[3]}</td><td class="mono">${r[4]}</td></tr>`).join('')}</tbody>`;
 
 const distScores = [
-  {name:'Alliance Beverage Distributing',score:87,trend:'up'},
+  {name:'Distributor 1',score:87,trend:'up'},
 ];
 document.getElementById('distCards').innerHTML = distScores.map(d=>`
   <div class="card">
@@ -1061,11 +1090,11 @@ document.getElementById('distTable').innerHTML = `
   <tbody>${distRows.map(r=>`<tr><td>${r[0]}</td><td class="mono">${r[1]}</td><td class="mono">${r[2]}</td><td class="mono">${r[3]}</td></tr>`).join('')}</tbody>`;
 
 const accounts = [
-  ['Meijer #142','Retail','East Lansing','Gold','820'],
-  ['Kroger #318','Retail','Lansing','Gold','710'],
-  ['Total Wine - Troy','Retail','Troy','Gold','690'],
-  ['Walmart #2210','Retail','Okemos','Silver','540'],
-  ['Spartan Nash #66','Retail','Grand Rapids','Silver','470'],
+  ['Retailer 2 #142','Retail','Region A','Gold','820'],
+  ['Retailer 1 #318','Retail','Region B','Gold','710'],
+  ['Retailer 6 - Store A','Retail','Region C','Gold','690'],
+  ['Retailer 3 #2210','Retail','Region D','Silver','540'],
+  ['Retailer 5 #66','Retail','Region E','Silver','470'],
   ['The Cellar Bistro','On-premise','Petoskey','Bronze','140'],
   ['Harbor House Grill','On-premise','Charlevoix','Bronze','112'],
   ['Lakeshore Tavern','On-premise','Holland','Bronze','98'],
@@ -1084,11 +1113,11 @@ document.getElementById('acctSearch').addEventListener('input',e=>renderAccounts
    AI INSIGHTS / TASKS / ALERTS
    ============================================================ */
 const insights = [
-  {tag:'VOLUME',color:COLORS.success,text:'9L case volume is trending 4.2% ahead of last month, led by Bota Box growth in Meijer and Kroger.',time:'12 min ago'},
+  {tag:'VOLUME',color:COLORS.success,text:'9L case volume is trending 4.2% ahead of last month, led by Brand 1 growth in Retailer 2 and Retailer 1.',time:'12 min ago'},
   {tag:'EXECUTION',color:COLORS.blue,text:'Distributor execution improved in 7 of 10 key accounts this week, with display compliance the strongest driver.',time:'1 hr ago'},
-  {tag:'RISK',color:COLORS.warning,text:'Feature execution dipped 2.1% — Walmart #2210 fell off planned ad placement for week 24.',time:'2 hr ago'},
-  {tag:'HEALTH',color:COLORS.cyan,text:'MEDAS score averaged 8.6/14 over the last 30 days, trending up from 7.9 last month.',time:'4 hr ago'},
-  {tag:'GOAL',color:'#A78BFA',text:'Vault Lifter program is 60% complete with 4 months remaining — on pace to finish ahead of the November target.',time:'Yesterday'},
+  {tag:'RISK',color:COLORS.warning,text:'Feature execution dipped 2.1% — Retailer 3 #2210 fell off planned ad placement for week 24.',time:'2 hr ago'},
+  {tag:'POD',color:COLORS.cyan,text:'POD hit rate climbed to 8 of 10 SKUs this period, putting the H2 payout factor at 0.85.',time:'4 hr ago'},
+  {tag:'GOAL',color:'#A78BFA',text:'PODs goal is 68% complete with 3 months remaining — on pace to finish ahead of the September target.',time:'Yesterday'},
 ];
 document.getElementById('insightFeed').innerHTML = insights.slice(0,4).map(i=>`
   <div class="insight-item">
@@ -1104,10 +1133,10 @@ document.getElementById('insightFull').innerHTML = insights.map(i=>`
   </div>`).join('');
 
 const tasks = [
-  {text:'Call back Total Wine - Troy re: Q3 display reset',done:false,meta:'Due tomorrow'},
-  {text:'Submit weekly recap to Alliance Beverage',done:false,meta:'Due Friday'},
-  {text:'Review Spartan Nash POD compliance report',done:true,meta:'Completed'},
-  {text:'Follow up on Walmart #2210 ad placement gap',done:false,meta:'Due in 2 days'},
+  {text:'Call back Retailer 6 - Store A re: Q3 display reset',done:false,meta:'Due tomorrow'},
+  {text:'Submit weekly recap to Distributor 1',done:false,meta:'Due Friday'},
+  {text:'Review Retailer 5 POD compliance report',done:true,meta:'Completed'},
+  {text:'Follow up on Retailer 3 #2210 ad placement gap',done:false,meta:'Due in 2 days'},
 ];
 document.getElementById('taskFeed').innerHTML = tasks.map(t=>`
   <div class="task-item">
@@ -1119,8 +1148,8 @@ document.getElementById('taskFeed').innerHTML = tasks.map(t=>`
   </div>`).join('');
 
 const alerts = [
-  {text:'Walmart #2210 feature compliance below 60% threshold',sev:'warning'},
-  {text:'Bota Box velocity up 12% — consider expanding facings',sev:'success'},
+  {text:'Retailer 3 #2210 feature compliance below 60% threshold',sev:'warning'},
+  {text:'Brand 1 velocity up 12% — consider expanding facings',sev:'success'},
 ];
 document.getElementById('alertFeed').innerHTML = alerts.map(a=>`
   <div class="insight-item" style="border-left:2px solid ${a.sev==='warning'?COLORS.warning:COLORS.success};">
@@ -1605,7 +1634,7 @@ function renderDsip(){
   const dashEl = document.getElementById('dsipDashCard');
   if(dashEl){
     dashEl.innerHTML = `
-      <div class="kpi-label">DSIP full-year estimated payout</div>
+      <div class="kpi-label">BONUS full-year estimated payout</div>
       <div class="kpi-value" style="color:#10B981;">$${Math.round(fyTotal).toLocaleString()}</div>
       <div class="progress-track"><div class="progress-fill" style="width:${Math.min(100,fyNetFactor*100).toFixed(0)}%;background:linear-gradient(90deg,#10B981,#06B6D4);"></div></div>
       <div class="kpi-foot neutral" style="margin-top:8px;">${(fyNetFactor*100).toFixed(1)}% factor · H1 $${Math.round(dollarH1).toLocaleString()} + H2 $${Math.round(dollarH2).toLocaleString()}</div>`;
@@ -1648,9 +1677,18 @@ document.getElementById('introEnter').addEventListener('click', enterDashboard);
 document.getElementById('introScreen').addEventListener('click', (e)=>{
   if(e.target.id === 'introScreen') enterDashboard();
 });
+let introAdvanced = false;
+const introAutoTimer = setTimeout(enterDashboard, 3200);
 function enterDashboard(){
-  document.getElementById('introScreen').classList.add('hidden');
-  document.getElementById('app').classList.remove('hidden');
+  if(introAdvanced) return;
+  introAdvanced = true;
+  clearTimeout(introAutoTimer);
+  const intro = document.getElementById('introScreen');
+  intro.classList.add('leaving');
+  setTimeout(()=>{
+    intro.classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+  }, 480);
 }
 
 </script>
