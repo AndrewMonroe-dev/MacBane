@@ -12,6 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <style>
 :root{
   --bg:#0A0B0F;
@@ -43,42 +44,89 @@ html,body{
 ::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:4px;}
 ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.15);}
 
-/* ===== INTRO SCREEN ===== */
+/* ===== CINEMATIC INTRO ===== */
 #introScreen{
-  position:fixed;inset:0;z-index:100;
-  background:var(--bg);
+  position:fixed;inset:0;z-index:1000;
+  background:#05070A;
+  overflow:hidden;
   display:flex;align-items:center;justify-content:center;
-  transition:background-color .9s ease;
-}
-#introLogo{
-  width:min(340px,60vw);height:min(340px,60vw);object-fit:contain;border-radius:18px;
-  opacity:0;filter:blur(18px);transform:scale(.55);
-  animation:logoMaterialize 2.2s cubic-bezier(.16,.9,.2,1) forwards;
-}
-#introFallback{
-  display:none;width:min(340px,60vw);height:min(340px,60vw);border-radius:18px;
-  background:linear-gradient(135deg,var(--blue),var(--cyan));
-  align-items:center;justify-content:center;
-  font-weight:800;font-size:96px;color:#06121f;
-  opacity:0;filter:blur(18px);transform:scale(.55);
-  animation:logoMaterialize 2.2s cubic-bezier(.16,.9,.2,1) forwards;
-}
-@keyframes logoMaterialize{
-  0%{opacity:0;filter:blur(18px);transform:scale(.55);}
-  55%{opacity:.85;filter:blur(4px);transform:scale(1.04);}
-  100%{opacity:1;filter:blur(0);transform:scale(1);}
-}
-#introScreen.leaving{background-color:transparent;}
-#introScreen.leaving #introLogo,
-#introScreen.leaving #introFallback{
-  animation:none;
-  transition:opacity .9s ease,filter .9s ease,transform .9s ease;
-  opacity:0;filter:blur(14px);transform:scale(1.08);
 }
 #introScreen.hidden{display:none;}
-@media (max-width:480px){
-  #introLogo,#introFallback{width:78vw;height:78vw;}
+#introCanvas{
+  position:absolute;inset:0;width:100%;height:100%;display:block;
 }
+#introGlow{
+  position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(circle at 50% 50%, rgba(59,130,246,0.18), transparent 60%);
+  opacity:0;
+  mix-blend-mode:screen;
+}
+#introVignette{
+  position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at center, transparent 35%, rgba(5,7,10,0.85) 100%);
+}
+#introImageStage{
+  position:relative;z-index:5;
+  width:min(640px,72vw);height:min(640px,72vh);
+  display:flex;align-items:center;justify-content:center;
+  perspective:1200px;
+}
+#introImageWrap{
+  position:relative;width:100%;height:100%;
+  display:flex;align-items:center;justify-content:center;
+  transform-style:preserve-3d;
+}
+#introLogo{
+  width:100%;height:100%;object-fit:contain;
+  filter:drop-shadow(0 0 60px rgba(59,130,246,.35));
+  opacity:0;
+  will-change:transform,opacity,filter;
+}
+#introFallback{
+  display:none;width:100%;height:100%;border-radius:24px;
+  background:linear-gradient(135deg,#3B82F6,#06B6D4);
+  align-items:center;justify-content:center;
+  font-weight:800;font-size:min(160px,18vw);color:#06121f;
+  opacity:0;
+  will-change:transform,opacity,filter;
+}
+#introShardLayer{
+  position:absolute;inset:0;pointer-events:none;z-index:6;
+}
+.intro-shard{
+  position:absolute;
+  background:linear-gradient(135deg, rgba(59,130,246,.35), rgba(139,92,246,.12));
+  border:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(2px);
+  opacity:0;
+  border-radius:3px;
+}
+#introScanline{
+  position:absolute;left:0;right:0;height:2px;
+  background:linear-gradient(90deg, transparent, rgba(6,182,212,.9), transparent);
+  opacity:0;
+  z-index:7;
+  box-shadow:0 0 18px rgba(6,182,212,.8);
+}
+#introPulseRing{
+  position:absolute;border-radius:50%;
+  border:1.5px solid rgba(59,130,246,.55);
+  opacity:0;
+  z-index:4;
+}
+#introHairlines{
+  position:absolute;inset:0;pointer-events:none;z-index:3;
+  opacity:0;
+}
+.intro-hairline{
+  position:absolute;height:1px;
+  background:linear-gradient(90deg, transparent, rgba(59,130,246,.5), rgba(6,182,212,.5), transparent);
+  transform-origin:left center;
+}
+@media (max-width:480px){
+  #introImageStage{width:88vw;height:88vw;}
+}
+
 #app.hidden{display:none;}
 
 /* ===== APP SHELL ===== */
@@ -330,8 +378,19 @@ label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:bloc
 
 <!-- ===== INTRO SCREEN ===== -->
 <div id="introScreen">
-  <img src="MacBaneLogo.png" alt="MacBane" id="introLogo" onerror="this.style.display='none';document.getElementById('introFallback').style.display='flex';">
-  <div id="introFallback">M</div>
+  <canvas id="introCanvas"></canvas>
+  <div id="introHairlines"></div>
+  <div id="introGlow"></div>
+  <div id="introPulseRing"></div>
+  <div id="introImageStage">
+    <div id="introImageWrap">
+      <img src="MacBaneLogo.png" alt="MacBane" id="introLogo" onerror="this.style.display='none';document.getElementById('introFallback').style.display='flex';">
+      <div id="introFallback">M</div>
+      <div id="introShardLayer"></div>
+    </div>
+  </div>
+  <div id="introScanline"></div>
+  <div id="introVignette"></div>
 </div>
 
 <div id="app">
@@ -1651,14 +1710,280 @@ document.getElementById('dsipYearEnd').addEventListener('change', renderDsip);
 rebuildDsipTables();
 
 /* ============================================================
-   INTRO SCREEN
+   CINEMATIC INTRO SEQUENCE
    ============================================================ */
-setTimeout(enterDashboard, 2600);
-function enterDashboard(){
-  const intro = document.getElementById('introScreen');
-  intro.classList.add('leaving');
-  setTimeout(()=>{ intro.classList.add('hidden'); }, 950);
-}
+(function(){
+  const canvas = document.getElementById('introCanvas');
+  const ctx = canvas.getContext('2d');
+  const introScreen = document.getElementById('introScreen');
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let W, H, DPR;
+  function resize(){
+    DPR = Math.min(window.devicePixelRatio||1, 2);
+    W = canvas.width = innerWidth*DPR;
+    H = canvas.height = innerHeight*DPR;
+    canvas.style.width = innerWidth+'px';
+    canvas.style.height = innerHeight+'px';
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  /* ---- Particle field (ambient stars -> neural nodes -> convergence) ---- */
+  const COUNT = innerWidth < 600 ? 110 : 220;
+  const particles = [];
+  const cx = ()=>W/2, cy = ()=>H/2;
+  for(let i=0;i<COUNT;i++){
+    const angle = Math.random()*Math.PI*2;
+    const dist = (0.25+Math.random()*0.75) * Math.max(W,H)*0.55;
+    particles.push({
+      x: cx()+Math.cos(angle)*dist,
+      y: cy()+Math.sin(angle)*dist,
+      homeX: cx()+Math.cos(angle)*dist,
+      homeY: cy()+Math.sin(angle)*dist,
+      r: (0.6+Math.random()*1.8)*DPR,
+      baseAlpha: 0.15+Math.random()*0.5,
+      alpha: 0,
+      twinkleSpeed: 0.5+Math.random()*1.5,
+      phase: Math.random()*Math.PI*2,
+      hue: Math.random()<0.5 ? '59,130,246' : (Math.random()<0.5 ? '6,182,212' : '139,92,246'),
+      conv: 0,        // 0=ambient, 1=fully converged to center
+      vx:0, vy:0
+    });
+  }
+
+  // Sparse connection links between nearby particles for the "neural network" look
+  const links = [];
+  for(let i=0;i<particles.length;i++){
+    for(let j=i+1;j<particles.length;j++){
+      const a=particles[i], b=particles[j];
+      const d = Math.hypot(a.x-b.x, a.y-b.y);
+      if(d < Math.max(W,H)*0.09 && Math.random()<0.12){
+        links.push({a,b,alpha:0});
+      }
+    }
+  }
+
+  let t0 = performance.now();
+  let phase = 0; // driven by GSAP via global var below
+  let networkOpacity = 0;
+  let convergeAmount = 0; // 0..1 drives particles flying to center to form the image
+  let burstAmount = 0;    // 0..1 power-moment outward burst
+  let globalAlpha = 1;
+  let raf;
+
+  function draw(now){
+    raf = requestAnimationFrame(draw);
+    const dt = (now-t0)/1000; t0 = now;
+    ctx.clearRect(0,0,W,H);
+    if(globalAlpha<=0.001) return;
+
+    // links (neural network)
+    if(networkOpacity>0.01){
+      ctx.lineWidth = 1*DPR;
+      for(const l of links){
+        const d = Math.hypot(l.a.x-l.b.x, l.a.y-l.b.y);
+        const targetAlpha = Math.max(0, 1-d/(Math.max(W,H)*0.09)) * networkOpacity * 0.35;
+        l.alpha += (targetAlpha-l.alpha)*0.08;
+        if(l.alpha>0.005){
+          ctx.strokeStyle = `rgba(59,130,246,${l.alpha*globalAlpha})`;
+          ctx.beginPath();
+          ctx.moveTo(l.a.x,l.a.y);
+          ctx.lineTo(l.b.x,l.b.y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // particles
+    for(const p of particles){
+      // target alpha ramps in during phase 1-2, particles converge toward center during phase 3-4,
+      // then burst outward softly during phase 5
+      const flicker = 0.75+0.25*Math.sin(now*0.001*p.twinkleSpeed + p.phase);
+      p.alpha += (p.baseAlpha*flicker - p.alpha)*0.06;
+
+      let tx = p.homeX, ty = p.homeY;
+      if(convergeAmount>0){
+        tx = p.homeX + (cx()-p.homeX)*convergeAmount;
+        ty = p.homeY + (cy()-p.homeY)*convergeAmount;
+      }
+      if(burstAmount>0){
+        const ang = Math.atan2(p.homeY-cy(), p.homeX-cx());
+        const burstDist = burstAmount*Math.max(W,H)*0.18;
+        tx += Math.cos(ang)*burstDist;
+        ty += Math.sin(ang)*burstDist;
+      }
+      p.x += (tx-p.x)*0.09;
+      p.y += (ty-p.y)*0.09;
+
+      const rr = p.r * (1+convergeAmount*0.6);
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,rr,0,Math.PI*2);
+      ctx.fillStyle = `rgba(${p.hue},${p.alpha*globalAlpha})`;
+      ctx.fill();
+
+      if(convergeAmount>0.15){
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,rr*2.4,0,Math.PI*2);
+        ctx.fillStyle = `rgba(${p.hue},${p.alpha*globalAlpha*0.06*convergeAmount})`;
+        ctx.fill();
+      }
+    }
+  }
+  raf = requestAnimationFrame(draw);
+
+  /* ---- Hairlines (Phase 2: thin glowing lines spreading outward) ---- */
+  const hairlineLayer = document.getElementById('introHairlines');
+  const HL_COUNT = 14;
+  const hairlineEls = [];
+  for(let i=0;i<HL_COUNT;i++){
+    const el = document.createElement('div');
+    el.className='intro-hairline';
+    const angle = (360/HL_COUNT)*i + (Math.random()*10-5);
+    const len = 30+Math.random()*55;
+    el.style.width = '0%';
+    el.style.top = '50%';
+    el.style.left = '50%';
+    el.style.transform = `rotate(${angle}deg) scaleX(0)`;
+    el.dataset.finalWidth = len+'vmax';
+    el.dataset.angle = angle;
+    hairlineLayer.appendChild(el);
+    hairlineEls.push(el);
+  }
+
+  /* ---- Shards (Phase 3-4: glass shards aligning into the image) ---- */
+  const shardLayer = document.getElementById('introShardLayer');
+  const SHARD_COUNT = innerWidth<600 ? 16 : 26;
+  const shardEls = [];
+  for(let i=0;i<SHARD_COUNT;i++){
+    const el = document.createElement('div');
+    el.className='intro-shard';
+    const w = 14+Math.random()*46, h = 14+Math.random()*46;
+    el.style.width = w+'px';
+    el.style.height = h+'px';
+    el.style.left = (Math.random()*100)+'%';
+    el.style.top = (Math.random()*100)+'%';
+    el.style.transform = `translate3d(${(Math.random()*2-1)*420}px,${(Math.random()*2-1)*420}px,${Math.random()*200-100}px) rotate(${Math.random()*180-90}deg)`;
+    shardLayer.appendChild(el);
+    shardEls.push(el);
+  }
+
+  /* ---- GSAP master timeline ---- */
+  const glow = document.getElementById('introGlow');
+  const ring = document.getElementById('introPulseRing');
+  const scan = document.getElementById('introScanline');
+  const stage = document.getElementById('introImageStage');
+  const wrap = document.getElementById('introImageWrap');
+  const logoEl = document.getElementById('introLogo');
+  const fallbackEl = document.getElementById('introFallback');
+  const visibleLogo = function(){ return logoEl.style.display==='none' ? fallbackEl : logoEl; };
+
+  const appEl = document.getElementById('app');
+  const sidebarEl = document.getElementById('sidebar');
+  const mainEl = document.getElementById('main');
+  const rightPanelEl = document.getElementById('rightPanel');
+  const topbars = mainEl.querySelectorAll('.topbar');
+  const cards = mainEl.querySelectorAll('.card, .panel, .kpi, .stat-card, .grid-4 > *, .grid-3 > *, .grid-2 > *');
+
+  // App starts hidden and pre-staged for its own entrance (Phase 6)
+  appEl.style.opacity = '0';
+  gsap.set(sidebarEl, {x:-28, opacity:0});
+  gsap.set(rightPanelEl, {x:28, opacity:0});
+  gsap.set(topbars, {y:-14, opacity:0});
+  if(cards.length) gsap.set(cards, {y:22, opacity:0});
+
+  function finishIntro(){
+    cancelAnimationFrame(raf);
+    introScreen.classList.add('hidden');
+  }
+
+  if(reduceMotion){
+    // Respect reduced-motion: simple fast crossfade, skip the full sequence
+    gsap.timeline()
+      .to(visibleLogo(), {opacity:1, duration:.4})
+      .to(introScreen, {opacity:0, duration:.5, delay:.3})
+      .to(appEl, {opacity:1, duration:.4}, '-=.3')
+      .set([sidebarEl,rightPanelEl,topbars,cards], {x:0,y:0,opacity:1})
+      .add(finishIntro);
+    return;
+  }
+
+  const tl = gsap.timeline({defaults:{ease:'power2.out'}});
+
+  // PHASE 1 — Darkness, ambient particles emerge (1s)
+  tl.to({}, {duration:1, onUpdate(){ /* particles fade in via their own alpha lerp */ }});
+
+  // PHASE 2 — Data awakening: neural network lines + nodes (2s)
+  tl.to({}, {
+    duration:2,
+    onStart(){ gsap.to({}, {duration:2, onUpdate(){ networkOpacity = Math.min(1, networkOpacity+0.02); }}); }
+  });
+  tl.to(hairlineEls, {
+    scaleX:1,
+    duration:1.6,
+    ease:'power3.out',
+    stagger:0.05,
+    onStart(){
+      hairlineEls.forEach(el=>{ el.style.width = el.dataset.finalWidth; el.style.opacity = 0.55; });
+    }
+  }, '<');
+  tl.to(hairlineLayer, {opacity:1, duration:.6}, '<');
+  tl.to(hairlineLayer, {opacity:0, duration:.8}, '+=0.3');
+
+  // PHASE 3 — Intelligence formation: convergence begins, glass shards drift in with depth (2s)
+  tl.to({}, {
+    duration:2,
+    onUpdate(){ convergeAmount = Math.min(0.65, convergeAmount+0.012); }
+  });
+  tl.to(shardEls, {
+    x:0, y:0, z:0, rotation:0, opacity:0.85,
+    duration:1.7,
+    ease:'power3.out',
+    stagger:{each:0.025, from:'random'},
+    onStart(){
+      shardEls.forEach(el=>{ el.style.transform = 'translate3d(0,0,0) rotate(0deg)'; });
+    }
+  }, '<');
+  tl.to(glow, {opacity:0.55, duration:1.2}, '<0.4');
+  tl.fromTo(scan, {top:'-5%', opacity:0}, {top:'105%', opacity:0.9, duration:1.4, ease:'none'}, '<');
+
+  // PHASE 4 — Image reveal: particles fully converge, shards fade, image assembles (2s)
+  tl.to({}, {
+    duration:1.6,
+    onUpdate(){ convergeAmount = Math.min(1, convergeAmount+0.018); }
+  });
+  tl.to(shardEls, {opacity:0, duration:.6, stagger:0.01}, '<');
+  tl.fromTo(visibleLogo(), {opacity:0, filter:'blur(22px) brightness(2)', scale:0.7},
+    {opacity:1, filter:'blur(0px) brightness(1)', scale:1, duration:1.6, ease:'power3.out'}, '<0.2');
+  tl.to(wrap, {rotateY:0, rotateX:0, duration:1.6, ease:'power3.out'}, '<');
+
+  // PHASE 5 — Executive power moment: system-online pulse (1s)
+  tl.to({}, {
+    duration:0.9,
+    onStart(){
+      burstAmount = 0.001;
+    },
+    onUpdate(){ burstAmount = Math.min(1, burstAmount+0.06); },
+    onComplete(){ burstAmount = 0; }
+  });
+  tl.fromTo(ring, {opacity:0.9, width:'10px', height:'10px'},
+    {opacity:0, width:'140vmax', height:'140vmax', duration:0.9, ease:'power2.out'}, '<');
+  tl.to(glow, {opacity:0.85, duration:.3}, '<');
+  tl.to(glow, {opacity:0.25, duration:.6}, '>');
+  tl.to(visibleLogo(), {filter:'drop-shadow(0 0 90px rgba(6,182,212,.6))', duration:.4}, '<-0.5');
+
+  // PHASE 6 — Dashboard emergence: image hands off to the real app (2s)
+  tl.to(stage, {scale:0.001, opacity:0, duration:0.9, ease:'power3.inOut'}, '+=0.1');
+  tl.to(introScreen, {backgroundColor:'rgba(5,7,10,0)', duration:1.1}, '<');
+  tl.to(appEl, {opacity:1, duration:0.6}, '<0.15');
+  tl.to(sidebarEl, {x:0, opacity:1, duration:0.8, ease:'power3.out'}, '<');
+  tl.to(rightPanelEl, {x:0, opacity:1, duration:0.8, ease:'power3.out'}, '<');
+  tl.to(topbars, {y:0, opacity:1, duration:0.6, stagger:0.04, ease:'power2.out'}, '<0.1');
+  if(cards.length){
+    tl.to(cards, {y:0, opacity:1, duration:0.7, stagger:{each:0.025, from:'start'}, ease:'power3.out'}, '<0.05');
+  }
+  tl.add(finishIntro);
+})();
 
 </script>
 </body>
