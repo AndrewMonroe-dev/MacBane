@@ -72,7 +72,7 @@ html,body{
 }
 #introImageStage{
   position:relative;z-index:5;
-  width:min(640px,72vw);height:min(640px,72vh);
+  width:min(1280px,90vw);height:min(1280px,90vh);
   display:flex;align-items:center;justify-content:center;
   perspective:1200px;
 }
@@ -91,7 +91,7 @@ html,body{
   display:none;width:100%;height:100%;border-radius:24px;
   background:linear-gradient(135deg,#3B82F6,#06B6D4);
   align-items:center;justify-content:center;
-  font-weight:800;font-size:min(160px,18vw);color:#06121f;
+  font-weight:800;font-size:min(320px,18vw);color:#06121f;
   opacity:0;
   will-change:transform,opacity,filter;
 }
@@ -130,7 +130,7 @@ html,body{
   transform-origin:left center;
 }
 @media (max-width:480px){
-  #introImageStage{width:88vw;height:88vw;}
+  #introImageStage{width:96vw;height:96vw;}
 }
 
 #app.hidden{display:none;}
