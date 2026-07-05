@@ -310,6 +310,19 @@ html,body{
 .progress-track{height:7px;background:rgba(255,255,255,.06);border-radius:6px;overflow:hidden;margin-top:10px;}
 .progress-fill{height:100%;border-radius:6px;transition:width .4s ease;}
 
+/* launcher cards */
+.launcher-card{cursor:pointer;display:flex;flex-direction:column;}
+.launcher-icon{
+  width:44px;height:44px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:19px;font-weight:700;color:#fff;
+  margin-bottom:14px;flex-shrink:0;
+}
+.launcher-name{font-size:15.5px;font-weight:700;margin-bottom:3px;}
+.launcher-tagline{font-size:11.5px;color:var(--text2);margin-bottom:10px;font-weight:600;}
+.launcher-desc{font-size:12.5px;color:var(--text2);line-height:1.55;margin-bottom:16px;flex:1;}
+.launcher-card .btn-primary{align-self:flex-start;}
+
 /* goal cards */
 .goal-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:10px;}
 .goal-top{display:flex;align-items:flex-start;justify-content:space-between;}
@@ -412,7 +425,10 @@ label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:bloc
     </div>
 
     <div class="navgroup-label">Workspace</div>
-    <div class="navitem active" data-route="dashboard">
+    <div class="navitem active" data-route="launcher">
+      <span class="ic">⊞</span> Launcher
+    </div>
+    <div class="navitem" data-route="dashboard">
       <span class="ic">●</span> Dashboard
     </div>
     <div class="navitem" data-route="goals">
@@ -459,8 +475,42 @@ label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:bloc
   <!-- ============ MAIN ============ -->
   <div id="main">
 
+    <!-- ===== LAUNCHER ===== -->
+    <div class="section active" id="sec-launcher">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Launcher</div>
+          <div class="page-sub">Quick access to your other tools</div>
+        </div>
+      </div>
+      <div class="grid grid-3" id="launcherGrid"></div>
+    </div>
+
+    <!-- ===== TOOL VIEWER (opened from Launcher, no sidebar entry) ===== -->
+    <div class="section" id="sec-toolviewer">
+      <div class="topbar">
+        <div>
+          <div class="page-title" id="toolViewerTitle">Tool</div>
+          <div class="page-sub" id="toolViewerSub"></div>
+        </div>
+        <div class="topbar-right">
+          <a id="toolViewerOpenNew" class="btn" href="#" target="_blank" rel="noopener">Open in new tab ↗</a>
+          <button class="btn" onclick="route('launcher')">← Back to launcher</button>
+        </div>
+      </div>
+      <div class="card" id="toolViewerFallback" style="display:none;margin-bottom:14px;border-color:rgba(245,158,11,.35);">
+        <div class="panel-title" style="color:var(--warning);">This tool isn't displaying here</div>
+        <div style="font-size:12.5px;color:var(--text2);margin-top:6px;line-height:1.5;">
+          Some sites block being shown inside another page for security reasons. Use "Open in new tab" above instead.
+        </div>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:14px;overflow:hidden;height:calc(100vh - 180px);min-height:420px;background:#fff;">
+        <iframe id="toolViewerFrame" src="" style="width:100%;height:100%;border:0;" loading="lazy" title="Embedded tool"></iframe>
+      </div>
+    </div>
+
     <!-- ===== DASHBOARD ===== -->
-    <div class="section active" id="sec-dashboard">
+    <div class="section" id="sec-dashboard">
       <div class="topbar">
         <div>
           <div class="page-title">Executive overview</div>
@@ -874,12 +924,73 @@ const COLORS = {blue:'#3B82F6',cyan:'#06B6D4',success:'#10B981',warning:'#F59E0B
 /* ============================================================
    ROUTER
    ============================================================ */
-function route(name){
+function route(name, navName){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.getElementById('sec-'+name).classList.add('active');
-  document.querySelectorAll('.navitem').forEach(n=>n.classList.toggle('active', n.dataset.route===name));
+  const activeNav = navName || name;
+  document.querySelectorAll('.navitem').forEach(n=>n.classList.toggle('active', n.dataset.route===activeNav));
 }
 document.querySelectorAll('.navitem').forEach(n=>n.addEventListener('click',()=>route(n.dataset.route)));
+
+/* ============================================================
+   LAUNCHER — links out to the other standalone tools
+   ============================================================ */
+const TOOLS = [
+  {
+    id:'stockpad', name:'StockPad', tagline:'Distributor inventory tracker',
+    desc:'Flags SKUs running low relative to sales pace across RNDC, Alliance, and Vintage exports.',
+    url:'https://andrewmonroe-dev.github.io/StockPad/', icon:'◆', accent:'#3B82F6'
+  },
+  {
+    id:'midmonth', name:'Volume Report Generator', tagline:'Mid-Month &amp; EOM reports',
+    desc:'Builds Delicato Family Wines distributor volume reports from pasted sheet data.',
+    url:'https://andrewmonroe-dev.github.io/MidMonthEOMGenerator/', icon:'▤', accent:'#06B6D4'
+  },
+  {
+    id:'gainers', name:'Gainers &amp; Drainers', tagline:'Chain account workbook rebuild',
+    desc:'Regenerates the Raw Data, Sales Trend Analysis, Dashboard, and Legend workbook from a raw export.',
+    url:'https://andrewmonroe-dev.github.io/gainers_drainers/', icon:'▲', accent:'#10B981'
+  },
+];
+
+function renderLauncher(){
+  document.getElementById('launcherGrid').innerHTML = TOOLS.map(t=>`
+    <div class="card lift launcher-card" onclick="openTool('${t.id}')">
+      <div class="launcher-icon" style="background:linear-gradient(135deg,${t.accent},${t.accent}aa);">${t.icon}</div>
+      <div class="launcher-name">${t.name}</div>
+      <div class="launcher-tagline">${t.tagline}</div>
+      <div class="launcher-desc">${t.desc}</div>
+      <button class="btn btn-primary" onclick="event.stopPropagation();openTool('${t.id}')">Open →</button>
+    </div>
+  `).join('');
+}
+renderLauncher();
+
+function openTool(id){
+  const tool = TOOLS.find(t=>t.id===id);
+  if(!tool) return;
+  document.getElementById('toolViewerTitle').textContent = tool.name;
+  document.getElementById('toolViewerSub').innerHTML = tool.tagline;
+  document.getElementById('toolViewerOpenNew').href = tool.url;
+
+  const frame = document.getElementById('toolViewerFrame');
+  const fallback = document.getElementById('toolViewerFallback');
+  fallback.style.display = 'none';
+
+  let loaded = false;
+  frame.onload = () => { loaded = true; };
+  frame.src = tool.url;
+
+  // Some sites block iframe embedding (X-Frame-Options / CSP frame-ancestors).
+  // There's no fully reliable cross-origin way to detect this, so use a timeout
+  // heuristic: if the load event hasn't fired shortly after navigation, assume
+  // it may be blocked and surface the "open in new tab" fallback prominently.
+  // The "Open in new tab" link above is always available regardless.
+  clearTimeout(window._toolViewerTimer);
+  window._toolViewerTimer = setTimeout(()=>{ if(!loaded) fallback.style.display='block'; }, 3500);
+
+  route('toolviewer', 'launcher');
+}
 
 /* ============================================================
    CLOCK
