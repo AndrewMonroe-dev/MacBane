@@ -1316,16 +1316,34 @@ document.getElementById('alertFeed').innerHTML = alerts.map(a=>`
    REPORTS
    ============================================================ */
 const reports = [
-  {name:'Monthly DFW sales recap — June 2026',date:'Jun 16, 2026'},
-  {name:'Distributor scorecard — Q2 2026',date:'Jun 10, 2026'},
-  {name:'Account call tracker summary',date:'Jun 3, 2026'},
+  {name:'Monthly DFW sales recap — June 2026',date:'Jun 16, 2026',
+    body:'9L case volume: 11,430 (+4.2% vs. last month)\nRevenue: $1.84M (+6.8% vs. last month)\nActive PODs: 1,247 (+27 opened this quarter)\nFeature execution: 71% of planned features (-2.1% vs. last month)\n\nTop movers:\n- Retailer 2 #142: 820 cases, trailing 30 days\n- Retailer 1 #318: 710 cases, trailing 30 days\n- Retailer 6 - Store A: 690 cases, trailing 30 days\n\nNotes:\nRetailer 3 #2210 fell off planned ad placement for week 24, dragging feature execution down. Brand 1 continues to lead category growth.'},
+  {name:'Distributor scorecard — Q2 2026',date:'Jun 10, 2026',
+    body:'Distributor 1 — weighted scorecard: 87/100\n\nOrder accuracy: 94% (weight 22%)\nOn-time delivery: 91% (weight 20%)\nPOD compliance: 88% (weight 18%)\nDisplay execution: 71% (weight 15%)\nPricing compliance: 97% (weight 12%)\nCommunication / responsiveness: 89% (weight 13%)\n\nActive brands managed: 19\nExecution accounts tracked: 142 (+12 this quarter)\nImproved in 7 of 10 key accounts week over week.'},
+  {name:'Account call tracker summary',date:'Jun 3, 2026',
+    body:'Open follow-ups:\n- Call back Retailer 6 - Store A re: Q3 display reset (due tomorrow)\n- Submit weekly recap to Distributor 1 (due Friday)\n- Follow up on Retailer 3 #2210 ad placement gap (due in 2 days)\n\nCompleted:\n- Reviewed Retailer 5 POD compliance report\n\nAlerts:\n- Retailer 3 #2210 feature compliance below 60% threshold\n- Brand 1 velocity up 12% — consider expanding facings'},
 ];
-document.getElementById('reportCards').innerHTML = reports.map(r=>`
-  <div class="card lift" style="cursor:pointer;">
+document.getElementById('reportCards').innerHTML = reports.map((r,i)=>`
+  <div class="card lift">
     <div class="panel-title">${r.name}</div>
     <div class="panel-sub">Generated ${r.date}</div>
-    <button class="btn" style="margin-top:6px;">Download</button>
+    <button class="btn" style="margin-top:6px;" onclick="downloadReport(${i})">Download</button>
   </div>`).join('');
+
+function downloadReport(i){
+  const r = reports[i];
+  const filename = r.name.replace(/[^a-z0-9]+/gi,'_').replace(/^_+|_+$/g,'').toLowerCase() + '.txt';
+  const content = `${r.name}\nGenerated ${r.date}\n${'='.repeat(r.name.length)}\n\n${r.body}\n`;
+  const blob = new Blob([content], {type:'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 /* ============================================================
    EXCEL / CSV IMPORT
