@@ -1,1 +1,2244 @@
-PLACEHOLDER_REPLACE_WITH_FULL_CONTENT
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MacBane">
+<meta name="theme-color" content="#0A0B0F">
+<title>MacBane — Executive Intelligence Dashboard</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
+<link rel="shortcut icon" href="favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+:root{
+  --bg:#0A0B0F;
+  --panel:#131722;
+  --panel2:#1A1F2D;
+  --border:rgba(255,255,255,.05);
+  --border-strong:rgba(255,255,255,.09);
+  --blue:#3B82F6;
+  --cyan:#06B6D4;
+  --success:#10B981;
+  --warning:#F59E0B;
+  --danger:#EF4444;
+  --text:#FFFFFF;
+  --text2:#94A3B8;
+  --text3:#5B6677;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  height:100%;
+  overflow:hidden;
+}
+.mono{font-family:'JetBrains Mono',monospace;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:4px;}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.15);}
+
+/* ===== CINEMATIC INTRO ===== */
+#introScreen{
+  position:fixed;inset:0;z-index:1000;
+  background:#05070A;
+  overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+#introScreen.hidden{display:none;}
+#introCanvas{
+  position:absolute;inset:0;width:100%;height:100%;display:block;
+}
+#introGlow{
+  position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(circle at 50% 50%, rgba(59,130,246,0.18), transparent 60%);
+  opacity:0;
+  mix-blend-mode:screen;
+}
+#introVignette{
+  position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at center, transparent 35%, rgba(5,7,10,0.85) 100%);
+}
+#introImageStage{
+  position:relative;z-index:5;
+  width:min(1280px,90vw);height:min(1280px,90vh);
+  display:flex;align-items:center;justify-content:center;
+  perspective:1200px;
+}
+#introImageWrap{
+  position:relative;width:100%;height:100%;
+  display:flex;align-items:center;justify-content:center;
+  transform-style:preserve-3d;
+}
+#introLogo{
+  width:100%;height:100%;object-fit:contain;
+  filter:drop-shadow(0 0 60px rgba(59,130,246,.35));
+  opacity:0;
+  will-change:transform,opacity,filter;
+}
+#introFallback{
+  display:none;width:100%;height:100%;border-radius:24px;
+  background:linear-gradient(135deg,#3B82F6,#06B6D4);
+  align-items:center;justify-content:center;
+  font-weight:800;font-size:min(320px,18vw);color:#06121f;
+  opacity:0;
+  will-change:transform,opacity,filter;
+}
+#introShardLayer{
+  position:absolute;inset:0;pointer-events:none;z-index:6;
+}
+.intro-shard{
+  position:absolute;
+  background:linear-gradient(135deg, rgba(59,130,246,.35), rgba(139,92,246,.12));
+  border:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(2px);
+  opacity:0;
+  border-radius:3px;
+}
+#introScanline{
+  position:absolute;left:0;right:0;height:2px;
+  background:linear-gradient(90deg, transparent, rgba(6,182,212,.9), transparent);
+  opacity:0;
+  z-index:7;
+  box-shadow:0 0 18px rgba(6,182,212,.8);
+}
+#introPulseRing{
+  position:absolute;top:50%;left:50%;border-radius:50%;
+  border:1.5px solid rgba(59,130,246,.55);
+  opacity:0;
+  z-index:4;
+  transform:translate(-50%,-50%);
+}
+#introHairlines{
+  position:absolute;inset:0;pointer-events:none;z-index:3;
+  opacity:0;
+}
+.intro-hairline{
+  position:absolute;height:1px;
+  background:linear-gradient(90deg, transparent, rgba(59,130,246,.5), rgba(6,182,212,.5), transparent);
+  transform-origin:left center;
+}
+@media (max-width:480px){
+  #introImageStage{width:96vw;height:96vw;}
+}
+
+#app.hidden{display:none;}
+
+/* ===== APP SHELL ===== */
+#app{display:grid;grid-template-columns:240px 1fr 320px;height:100vh;}
+@media (max-width:1200px){#app{grid-template-columns:220px 1fr 0px;}#rightPanel{display:none;}}
+
+/* ===== MOBILE / TABLET ===== */
+@media (max-width:860px){
+  html,body{overflow:auto;height:auto;}
+  #app{
+    display:flex;flex-direction:column;height:auto;min-height:100vh;
+  }
+  #sidebar{
+    order:2;
+    flex-direction:row;
+    position:fixed;bottom:0;left:0;right:0;
+    height:64px;padding:6px 4px;
+    border-right:none;border-top:1px solid var(--border);
+    z-index:40;background:rgba(19,23,34,.97);
+    overflow-x:auto;overflow-y:hidden;
+    align-items:center;
+  }
+  .brand,.navgroup-label,.sidebar-footer{display:none;}
+  .navitem{
+    flex-direction:column;gap:2px;font-size:9.5px;padding:6px 10px;min-width:58px;
+    text-align:center;flex-shrink:0;border-radius:10px;
+  }
+  .navitem.active::before{display:none;}
+  .navitem .ic{font-size:16px;}
+  #main{
+    order:1;padding:16px 14px 84px;overflow-y:visible;
+  }
+  #rightPanel{
+    display:block;order:3;
+    border-left:none;border-top:1px solid var(--border);
+    margin-bottom:64px;
+  }
+  .grid-4,.grid-3,.grid-2{grid-template-columns:repeat(2,1fr);}
+  .kpi-value{font-size:22px;}
+  .page-title{font-size:18px;}
+  .topbar{flex-direction:column;align-items:flex-start;}
+  .topbar-right{width:100%;justify-content:space-between;}
+  table.data{font-size:11.5px;}
+  .card{padding:14px;}
+  .modal{width:92vw;padding:18px;}
+}
+@media (max-width:480px){
+  .grid-4,.grid-3,.grid-2{grid-template-columns:1fr 1fr;}
+  .kpi-value{font-size:20px;}
+  .navitem{min-width:50px;font-size:9px;padding:6px 7px;}
+}
+
+/* ===== SIDEBAR ===== */
+#sidebar{
+  background:var(--panel);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  padding:18px 12px;
+}
+.brand{
+  display:flex;align-items:center;gap:10px;
+  padding:6px 10px 22px 10px;
+}
+.brand-mark{
+  width:42px;height:42px;border-radius:9px;
+  background:linear-gradient(135deg,var(--blue),var(--cyan));
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:18px;color:#06121f;
+  flex-shrink:0;
+  object-fit:contain;
+}
+#sidebarLogo{background:transparent;width:52px;height:52px;border-radius:0;}
+.brand-name{font-weight:700;font-size:15px;letter-spacing:.2px;}
+.brand-sub{font-size:10.5px;color:var(--text3);letter-spacing:.6px;text-transform:uppercase;margin-top:1px;}
+
+.navgroup-label{
+  font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;
+  padding:14px 10px 6px;font-weight:600;
+}
+.navitem{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 10px;border-radius:8px;
+  color:var(--text2);font-size:13.5px;font-weight:500;
+  cursor:pointer;transition:background .15s ease,color .15s ease,transform .18s ease;
+  position:relative;
+}
+.navitem:hover{background:rgba(255,255,255,.035);color:var(--text);}
+.navitem.active{background:rgba(59,130,246,.12);color:var(--text);}
+.navitem.active::before{
+  content:'';position:absolute;left:-12px;top:8px;bottom:8px;width:3px;
+  background:var(--blue);border-radius:0 3px 3px 0;
+  animation:navpip .28s cubic-bezier(.22,.68,.31,1);
+}
+@keyframes navpip{from{transform:scaleY(0);}to{transform:scaleY(1);}}
+@media (hover:hover){.navitem:hover{transform:translateX(2px);}}
+.navitem .ic{width:16px;height:16px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.navitem.active .ic svg{stroke:var(--blue);}
+
+.sidebar-footer{
+  margin-top:auto;border-top:1px solid var(--border);padding-top:12px;
+  display:flex;align-items:center;gap:10px;padding-left:10px;
+}
+.avatar{
+  width:30px;height:30px;border-radius:8px;background:var(--panel2);
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;
+  color:var(--cyan);border:1px solid var(--border-strong);
+}
+.user-name{font-size:12.5px;font-weight:600;}
+.user-role{font-size:10.5px;color:var(--text3);}
+
+/* ===== MAIN ===== */
+#main{
+  overflow-y:auto;padding:22px 26px 60px;
+  background:
+    radial-gradient(900px 480px at 82% -8%, rgba(59,130,246,.07), transparent 62%),
+    radial-gradient(760px 480px at -6% 108%, rgba(6,182,212,.05), transparent 60%);
+}
+.topbar{
+  display:flex;align-items:center;justify-content:between;justify-content:space-between;
+  margin-bottom:22px;flex-wrap:wrap;gap:10px;
+}
+.page-title{font-size:20px;font-weight:700;letter-spacing:-.2px;}
+.page-sub{font-size:12.5px;color:var(--text2);margin-top:2px;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.pill{
+  font-size:11px;font-weight:600;padding:5px 10px;border-radius:6px;
+  background:rgba(16,185,129,.12);color:var(--success);
+  display:flex;align-items:center;gap:6px;border:1px solid rgba(16,185,129,.2);
+}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--success);box-shadow:0 0 6px var(--success);}
+.btn{
+  background:var(--panel2);border:1px solid var(--border-strong);color:var(--text);
+  font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:8px;cursor:pointer;
+  transition:border-color .15s ease, background .15s ease, transform .12s ease, box-shadow .2s ease, filter .15s ease;
+  display:inline-flex;align-items:center;gap:6px;
+  position:relative;overflow:hidden;
+}
+.btn:hover{border-color:rgba(255,255,255,.2);background:#1f2536;}
+.btn:active{transform:scale(.97);}
+.btn-primary{
+  background:linear-gradient(135deg,var(--blue),#2563eb);border:none;color:#fff;
+  box-shadow:0 4px 14px rgba(59,130,246,.25);
+}
+.btn-primary::after{
+  content:'';position:absolute;top:0;left:-70%;width:45%;height:100%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.32),transparent);
+  transform:skewX(-20deg);transition:left .55s ease;pointer-events:none;
+}
+.btn-primary:hover::after{left:135%;}
+.btn-primary:hover{filter:brightness(1.08);box-shadow:0 6px 20px rgba(59,130,246,.4);}
+
+.section{display:none;}
+.section.active{display:block;}
+
+/* ===== CARDS ===== */
+.grid{display:grid;gap:14px;}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+@media(max-width:1500px){.grid-4{grid-template-columns:repeat(2,1fr);}}
+
+.card{
+  background:linear-gradient(160deg,var(--panel) 0%, var(--panel2) 130%);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:18px;
+  position:relative;
+  overflow:hidden;
+  box-shadow:0 1px 2px rgba(0,0,0,.25), 0 12px 32px -24px rgba(0,0,0,.7);
+  transition:border-color .2s ease, transform .28s cubic-bezier(.22,.68,.31,1), box-shadow .28s ease;
+}
+.card::before{
+  content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:0;
+  background:radial-gradient(420px circle at var(--mx,50%) var(--my,50%), rgba(59,130,246,.10), transparent 65%);
+  opacity:0;transition:opacity .35s ease;
+}
+.card:hover::before{opacity:1;}
+.card:hover{
+  border-color:rgba(59,130,246,.28);
+  box-shadow:0 2px 6px rgba(0,0,0,.32), 0 18px 44px -22px rgba(59,130,246,.28);
+}
+
+.kpi-label{font-size:11.5px;color:var(--text2);font-weight:600;letter-spacing:.3px;display:flex;align-items:center;justify-content:space-between;}
+.kpi-value{font-size:28px;font-weight:700;margin-top:10px;letter-spacing:-.5px;font-family:'JetBrains Mono',monospace;}
+.kpi-foot{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:12px;font-weight:600;}
+.up{color:var(--success);}
+.down{color:var(--danger);}
+.neutral{color:var(--text2);}
+.kpi-icon{
+  position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+}
+
+.panel-title{font-size:14px;font-weight:700;margin-bottom:2px;}
+.panel-sub{font-size:11.5px;color:var(--text2);margin-bottom:16px;}
+.section-heading{font-size:15px;font-weight:700;margin:28px 0 14px;display:flex;align-items:center;gap:8px;}
+.section-heading .bar{width:3px;height:14px;background:var(--blue);border-radius:2px;}
+
+/* progress bar */
+.progress-track{height:7px;background:rgba(255,255,255,.06);border-radius:6px;overflow:hidden;margin-top:10px;}
+.progress-fill{height:100%;border-radius:6px;transition:width .4s ease;}
+
+/* launcher cards */
+.launcher-card{cursor:pointer;display:flex;flex-direction:column;}
+.launcher-icon{
+  width:44px;height:44px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:19px;font-weight:700;color:#fff;
+  margin-bottom:14px;flex-shrink:0;
+  transition:transform .3s cubic-bezier(.22,.68,.31,1);
+}
+.launcher-card:hover .launcher-icon{transform:translateY(-3px) scale(1.07) rotate(-4deg);}
+.launcher-name{font-size:15.5px;font-weight:700;margin-bottom:3px;}
+.launcher-tagline{font-size:11.5px;color:var(--text2);margin-bottom:10px;font-weight:600;}
+.launcher-desc{font-size:12.5px;color:var(--text2);line-height:1.55;margin-bottom:16px;flex:1;}
+.launcher-card .btn-primary{align-self:flex-start;}
+
+/* goal cards */
+.goal-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:10px;}
+.goal-top{display:flex;align-items:flex-start;justify-content:space-between;}
+.goal-cat{font-size:10px;text-transform:uppercase;letter-spacing:.6px;font-weight:700;padding:3px 8px;border-radius:5px;}
+.goal-name{font-size:14.5px;font-weight:600;margin-top:8px;}
+.goal-meta{font-size:11.5px;color:var(--text2);margin-top:2px;}
+.goal-pct{font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.status-badge{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;display:inline-flex;align-items:center;gap:5px;}
+
+/* table */
+table.data{width:100%;border-collapse:collapse;font-size:12.5px;}
+table.data th{
+  text-align:left;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase;
+  letter-spacing:.4px;padding:9px 10px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--panel);
+}
+table.data td{padding:10px 10px;border-bottom:1px solid var(--border);color:var(--text);}
+table.data td{transition:background .15s ease;}
+table.data tbody tr:hover td{background:rgba(59,130,246,.05);}
+table.data tbody tr:hover td:first-child{box-shadow:inset 2px 0 0 var(--blue);}
+
+/* tabs */
+.tabs{display:flex;gap:4px;background:var(--panel2);border-radius:10px;padding:4px;width:fit-content;margin-bottom:18px;}
+.tab{padding:7px 16px;border-radius:7px;font-size:12.5px;font-weight:600;color:var(--text2);cursor:pointer;}
+.tab.active{background:var(--blue);color:#fff;}
+
+/* right panel */
+#rightPanel{
+  background:var(--panel);border-left:1px solid var(--border);
+  padding:20px 16px;overflow-y:auto;
+}
+.insight-item{
+  background:var(--panel2);border:1px solid var(--border);border-radius:10px;
+  padding:12px 13px;margin-bottom:10px;
+}
+.insight-tag{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;}
+.insight-text{font-size:12.5px;color:var(--text);margin-top:6px;line-height:1.45;}
+.insight-time{font-size:10.5px;color:var(--text3);margin-top:7px;}
+
+.task-item{display:flex;align-items:flex-start;gap:9px;padding:9px 0;border-bottom:1px solid var(--border);}
+.task-item:last-child{border-bottom:none;}
+.task-check{width:15px;height:15px;border-radius:4px;border:1.5px solid var(--border-strong);flex-shrink:0;margin-top:2px;cursor:pointer;}
+.task-check.done{background:var(--success);border-color:var(--success);}
+.task-text{font-size:12.5px;}
+.task-text.done{color:var(--text3);text-decoration:line-through;}
+.task-meta{font-size:10.5px;color:var(--text3);margin-top:2px;}
+
+/* dropzone */
+.dropzone{
+  border:1.5px dashed var(--border-strong);border-radius:14px;padding:40px 20px;
+  text-align:center;cursor:pointer;transition:border-color .15s ease, background .15s ease;
+}
+.dropzone:hover, .dropzone.drag{border-color:var(--blue);background:rgba(59,130,246,.04);}
+.dropzone svg{stroke:var(--text2);}
+
+.chip{font-size:11px;font-weight:600;padding:4px 9px;border-radius:6px;background:var(--panel2);color:var(--text2);border:1px solid var(--border);}
+
+input,select{
+  background:var(--panel2);border:1px solid var(--border-strong);color:var(--text);
+  border-radius:8px;padding:8px 10px;font-size:12.5px;font-family:'Inter',sans-serif;
+}
+input:focus,select:focus{outline:none;border-color:var(--blue);}
+label.field-label{font-size:11px;color:var(--text2);font-weight:600;display:block;margin-bottom:5px;}
+
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:50;
+}
+.modal-overlay.open{display:flex;}
+.modal{
+  background:var(--panel);border:1px solid var(--border-strong);border-radius:16px;
+  padding:24px;width:420px;max-width:90vw;
+}
+.close-x{position:absolute;top:16px;right:16px;cursor:pointer;color:var(--text2);}
+
+.btn:focus-visible,.navitem:focus-visible,.tab:focus-visible,input:focus-visible,select:focus-visible{
+  outline:2px solid var(--blue);outline-offset:2px;
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important;}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== INTRO SCREEN ===== -->
+<div id="introScreen">
+  <canvas id="introCanvas"></canvas>
+  <div id="introHairlines"></div>
+  <div id="introGlow"></div>
+  <div id="introPulseRing"></div>
+  <div id="introImageStage">
+    <div id="introImageWrap">
+      <img src="MacBaneLogo.png" alt="MacBane" id="introLogo" onerror="this.style.display='none';document.getElementById('introFallback').style.display='flex';">
+      <div id="introFallback">M</div>
+      <div id="introShardLayer"></div>
+    </div>
+  </div>
+  <div id="introScanline"></div>
+  <div id="introVignette"></div>
+</div>
+
+<div id="app">
+
+
+  <!-- ============ SIDEBAR ============ -->
+  <div id="sidebar">
+    <div class="brand">
+      <img src="MacBaneLogo.png" alt="MacBane" class="brand-mark" id="sidebarLogo" onerror="this.style.display='none';document.getElementById('sidebarFallback').style.display='flex';">
+      <div class="brand-mark" id="sidebarFallback" style="display:none;">M</div>
+    </div>
+
+    <div class="navgroup-label">Workspace</div>
+    <div class="navitem active" data-route="launcher">
+      <span class="ic">⊞</span> Launcher
+    </div>
+    <div class="navitem" data-route="dashboard">
+      <span class="ic">●</span> Dashboard
+    </div>
+    <div class="navitem" data-route="goals">
+      <span class="ic">◎</span> Goals
+    </div>
+    <div class="navitem" data-route="sales">
+      <span class="ic">▲</span> Sales metrics
+    </div>
+    <div class="navitem" data-route="dsip">
+      <span class="ic">$</span> BONUS payout
+    </div>
+    <div class="navitem" data-route="distributors">
+      <span class="ic">◆</span> Distributors
+    </div>
+    <div class="navitem" data-route="accounts">
+      <span class="ic">▣</span> Accounts
+    </div>
+
+    <div class="navgroup-label">Data</div>
+    <div class="navitem" data-route="imports">
+      <span class="ic">⇩</span> Excel imports
+    </div>
+    <div class="navitem" data-route="reports">
+      <span class="ic">▤</span> Reports
+    </div>
+    <div class="navitem" data-route="insights">
+      <span class="ic">✦</span> Insights
+    </div>
+
+    <div class="navgroup-label">System</div>
+    <div class="navitem" data-route="settings">
+      <span class="ic">⚙</span> Settings
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="avatar">AM</div>
+      <div>
+        <div class="user-name">Sales Manager</div>
+        <div class="user-role">Area Sales Manager</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MAIN ============ -->
+  <div id="main">
+
+    <!-- ===== LAUNCHER ===== -->
+    <div class="section active" id="sec-launcher">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Launcher</div>
+          <div class="page-sub">Quick access to your other tools</div>
+        </div>
+      </div>
+      <div class="grid grid-3" id="launcherGrid"></div>
+    </div>
+
+    <!-- ===== TOOL VIEWER (opened from Launcher, no sidebar entry) ===== -->
+    <div class="section" id="sec-toolviewer">
+      <div class="topbar">
+        <div>
+          <div class="page-title" id="toolViewerTitle">Tool</div>
+          <div class="page-sub" id="toolViewerSub"></div>
+        </div>
+        <div class="topbar-right">
+          <a id="toolViewerOpenNew" class="btn" href="#" target="_blank" rel="noopener">Open in new tab ↗</a>
+          <button class="btn" onclick="route('launcher')">← Back to launcher</button>
+        </div>
+      </div>
+      <div class="card" id="toolViewerFallback" style="display:none;margin-bottom:14px;border-color:rgba(245,158,11,.35);">
+        <div class="panel-title" style="color:var(--warning);">This tool isn't displaying here</div>
+        <div style="font-size:12.5px;color:var(--text2);margin-top:6px;line-height:1.5;">
+          Some sites block being shown inside another page for security reasons. Use "Open in new tab" above instead.
+        </div>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:14px;overflow:hidden;height:calc(100vh - 180px);min-height:420px;background:#fff;">
+        <iframe id="toolViewerFrame" src="" style="width:100%;height:100%;border:0;" loading="lazy" title="Embedded tool"></iframe>
+      </div>
+    </div>
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="section" id="sec-dashboard">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Executive overview</div>
+          <div class="page-sub">Territory 1 · Company 1 · <span id="liveClock" class="mono"></span></div>
+        </div>
+        <div class="topbar-right">
+          <div class="pill"><span class="dot"></span> Live data</div>
+          <button class="btn" onclick="route('imports')">Import data</button>
+        </div>
+      </div>
+
+      <div class="grid grid-4" id="kpiRow"></div>
+
+      <div class="section-heading"><span class="bar"></span>Volume &amp; revenue trend</div>
+      <div class="card" style="height:300px;">
+        <canvas id="trendChart" role="img" aria-label="Monthly volume and revenue trend over the last 9 months"></canvas>
+      </div>
+
+      <div class="grid grid-2" style="margin-top:16px;">
+        <div class="card">
+          <div class="panel-title">Distribution by category</div>
+          <div class="panel-sub">9L case volume share, trailing 30 days</div>
+          <div style="height:220px;"><canvas id="catChart" role="img" aria-label="Donut chart of case volume by wine category"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="panel-title">Top accounts — feature activity</div>
+          <div class="panel-sub">Ranked by 9L case depletion, trailing 30 days</div>
+          <div style="height:220px;"><canvas id="acctChart" role="img" aria-label="Horizontal bar chart of top accounts by case depletion"></canvas></div>
+        </div>
+      </div>
+
+      <div class="section-heading"><span class="bar"></span>BONUS payout tracker</div>
+      <div class="grid grid-3">
+        <div class="card" id="dsipDashCard" style="cursor:pointer;" onclick="route('dsip')"></div>
+        <div class="card" style="cursor:pointer;" onclick="route('dsip')">
+          <div class="kpi-label">Open full calculator</div>
+          <div style="font-size:13px;color:var(--text2);margin-top:10px;line-height:1.5;">Enter depletions, PODs, contribution, and quarterly kickers to model your H1/H2 payout.</div>
+          <button class="btn" style="margin-top:12px;">Open BONUS →</button>
+        </div>
+        <div class="card">
+          <div class="kpi-label">How it works</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:10px;line-height:1.5;">Depletions 30% · PODs 10% · Contribution 10%, each tiered against plan. Hit 100% for full weight, 97.5%+ for 75%, 95%+ for 50%.</div>
+        </div>
+      </div>
+
+      <div class="section-heading"><span class="bar"></span>Goal progress snapshot</div>
+      <div class="grid grid-3" id="goalSnapshot"></div>
+    </div>
+
+    <!-- ===== GOALS ===== -->
+    <div class="section" id="sec-goals">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Goals</div>
+          <div class="page-sub">Professional, financial, fitness &amp; personal tracking</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span id="syncStatus" style="font-size:11.5px;color:var(--text2);"></span>
+          <button class="btn btn-primary" onclick="openGoalModal()">+ New goal</button>
+        </div>
+      </div>
+      <div class="tabs" id="goalTabs">
+        <div class="tab active" data-cat="All">All</div>
+        <div class="tab" data-cat="Sales">Sales</div>
+        <div class="tab" data-cat="Professional">Professional</div>
+      </div>
+      <div id="goalList"></div>
+    </div>
+
+    <!-- ===== SALES METRICS ===== -->
+    <div class="section" id="sec-sales">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Sales metrics</div>
+          <div class="page-sub">Volume · revenue · PODs · display &amp; feature execution</div>
+        </div>
+      </div>
+      <div class="grid grid-4" id="salesKpis"></div>
+      <div class="section-heading"><span class="bar"></span>Volume by brand</div>
+      <div class="card" style="height:280px;">
+        <canvas id="brandChart" role="img" aria-label="Bar chart of 9L case volume by brand"></canvas>
+      </div>
+      <div class="section-heading"><span class="bar"></span>Chain performance</div>
+      <div class="card" style="overflow-x:auto;">
+        <table class="data" id="chainTable"></table>
+      </div>
+    </div>
+
+    <!-- ===== DISTRIBUTORS ===== -->
+    <div class="section" id="sec-distributors">
+      <div class="topbar">
+        <div><div class="page-title">Distributors</div><div class="page-sub">Distributor 1 — execution scorecard</div></div>
+      </div>
+      <div class="grid grid-3" id="distCards"></div>
+      <div class="section-heading"><span class="bar"></span>Weighted scorecard</div>
+      <div class="card" style="overflow-x:auto;">
+        <table class="data" id="distTable"></table>
+      </div>
+    </div>
+
+    <!-- ===== ACCOUNTS ===== -->
+    <div class="section" id="sec-accounts">
+      <div class="topbar">
+        <div><div class="page-title">Accounts</div><div class="page-sub">Retail &amp; on-premise account directory</div></div>
+        <input id="acctSearch" placeholder="Search accounts..." style="width:220px;">
+      </div>
+      <div class="card" style="overflow-x:auto;">
+        <table class="data" id="acctTable"></table>
+      </div>
+    </div>
+
+    <!-- ===== EXCEL IMPORTS ===== -->
+    <div class="section" id="sec-imports">
+      <div class="topbar">
+        <div><div class="page-title">Excel imports</div><div class="page-sub">Upload .xlsx / .csv to map and ingest into the dashboard</div></div>
+      </div>
+      <div class="dropzone" id="dropzone">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke-width="1.6" style="margin:0 auto 10px;"><path d="M12 16V4M12 4l-4 4M12 4l4 4M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div style="font-weight:600;font-size:13.5px;">Drop a file or click to browse</div>
+        <div style="font-size:11.5px;color:var(--text2);margin-top:4px;">Accepts .xlsx, .xls, .csv — column mapping happens automatically</div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none;">
+      </div>
+
+      <div id="importPreviewWrap" style="display:none;margin-top:20px;">
+        <div class="section-heading"><span class="bar"></span>Column mapping</div>
+        <div class="card" id="mappingCard"></div>
+
+        <div class="section-heading"><span class="bar"></span>Preview <span class="chip" id="rowCountChip" style="margin-left:8px;"></span></div>
+        <div class="card" style="overflow-x:auto;max-height:340px;">
+          <table class="data" id="previewTable"></table>
+        </div>
+
+        <div style="margin-top:16px;display:flex;gap:10px;align-items:center;">
+          <input id="templateName" placeholder="Template name (e.g. Retailer 1 weekly depletions)" style="width:280px;">
+          <button class="btn" onclick="saveTemplate()">Save as template</button>
+          <button class="btn btn-primary" onclick="confirmImport()">Confirm import</button>
+          <span id="importStatus" style="font-size:12px;color:var(--success);font-weight:600;"></span>
+        </div>
+      </div>
+
+      <div class="section-heading"><span class="bar"></span>Saved templates</div>
+      <div class="grid grid-3" id="templateList"></div>
+
+      <div class="section-heading"><span class="bar"></span>Import history</div>
+      <div class="card" style="overflow-x:auto;">
+        <table class="data" id="historyTable"></table>
+      </div>
+    </div>
+
+    <!-- ===== REPORTS ===== -->
+    <div class="section" id="sec-reports">
+      <div class="topbar">
+        <div><div class="page-title">Reports</div><div class="page-sub">Generated summaries ready to export</div></div>
+      </div>
+      <div class="grid grid-3" id="reportCards"></div>
+    </div>
+
+    <!-- ===== INSIGHTS ===== -->
+    <div class="section" id="sec-insights">
+      <div class="topbar">
+        <div><div class="page-title">Insights</div><div class="page-sub">All AI-generated observations across modules</div></div>
+      </div>
+      <div id="insightFull"></div>
+    </div>
+
+    <!-- ===== BONUS PAYOUT CALCULATOR ===== -->
+    <div class="section" id="sec-dsip">
+      <div class="topbar">
+        <div>
+          <div class="page-title">BONUS payout calculator</div>
+          <div class="page-sub">Enter actuals against plan — payout recalculates live. All names and numbers are placeholders.</div>
+        </div>
+        <div class="topbar-right">
+          <select id="dsipHalf" style="width:160px;">
+            <option value="H1">H1 (Jan–Jun)</option>
+            <option value="H2">H2 (Jul–Dec)</option>
+            <option value="FY">Full year</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Payout summary cards -->
+      <div class="grid grid-4" id="dsipSummary"></div>
+
+      <!-- Salary / eligibility inputs -->
+      <div class="card" style="margin-top:16px;">
+        <div class="panel-title">Plan inputs</div>
+        <div class="panel-sub">Salary basis and target bonus % drive the dollar estimate. Eligibility = months worked ÷ period (1 = full period).</div>
+        <div class="grid grid-3" style="gap:14px;margin-bottom:14px;">
+          <div><label class="field-label">Salary basis ($)</label><input id="dsipSalary" type="number" value="100000" style="width:100%;"></div>
+          <div><label class="field-label">Target bonus (%)</label><input id="dsipTarget" type="number" value="30" style="width:100%;"></div>
+          <div><label class="field-label">PFP company outcome (0–1)</label><input id="dsipPfpOutcome" type="number" step="0.01" value="1" style="width:100%;"></div>
+        </div>
+        <div class="grid grid-4" style="gap:14px;">
+          <div><label class="field-label">H1 eligibility</label><input id="dsipEligH1" type="number" step="0.01" value="1" style="width:100%;"></div>
+          <div><label class="field-label">H2 eligibility</label><input id="dsipEligH2" type="number" step="0.01" value="1" style="width:100%;"></div>
+          <div><label class="field-label">FY eligibility</label><input id="dsipEligFY" type="number" step="0.01" value="1" style="width:100%;"></div>
+          <div><label class="field-label">Year-end &amp; active?</label>
+            <select id="dsipYearEnd" style="width:100%;">
+              <option value="yes">Yes (earnbacks on)</option>
+              <option value="no">No (mid-year)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Depletions -->
+      <div class="section-heading"><span class="bar"></span>Depletions
+        <span class="chip" style="margin-left:8px;">Weight 30% of total</span>
+      </div>
+      <div class="card" style="overflow-x:auto;">
+        <table class="data" id="dsipDeplTable"></table>
+        <div style="display:flex;gap:24px;margin-top:12px;font-size:12.5px;">
+          <span style="color:var(--text2);">Weighted depletion payout: <span id="deplPayout" class="mono" style="color:var(--text);font-weight:600;">0.00</span></span>
+          <span style="color:var(--text2);">Brands at goal: <span id="deplHits" class="mono" style="color:var(--text);font-weight:600;">0 of 9</span></span>
+        </div>
+      </div>
+
+      <!-- PODs -->
+      <div class="section-heading"><span class="bar"></span>PODs — all channels
+        <span class="chip" style="margin-left:8px;">Weight 10% of total</span>
+      </div>
+      <div class="card" style="overflow-x:auto;">
+        <table class="data" id="dsipPodTable"></table>
+        <div style="display:flex;gap:24px;margin-top:12px;font-size:12.5px;">
+          <span style="color:var(--text2);">SKUs hit: <span id="podHits" class="mono" style="color:var(--text);font-weight:600;">0</span></span>
+          <span style="color:var(--text2);">POD payout factor: <span id="podPayout" class="mono" style="color:var(--text);font-weight:600;">0.00</span></span>
+          <span style="color:var(--text3);font-size:11px;">Lookup: 5→.5 · 6→.6 · 7→.7 · 8→.85 · 9→1.0 · 10→1.2</span>
+        </div>
+      </div>
+
+      <!-- Contribution -->
+      <div class="section-heading"><span class="bar"></span>Selling contribution
+        <span class="chip" style="margin-left:8px;">Weight 10% of total</span>
+      </div>
+      <div class="card">
+        <div class="grid grid-4" style="gap:14px;">
+          <div><label class="field-label">H1 actual ($)</label><input id="contribActualH1" type="number" value="0" style="width:100%;"></div>
+          <div><label class="field-label">H1 plan ($)</label><input id="contribPlanH1" type="number" value="0" style="width:100%;"></div>
+          <div><label class="field-label">H2 actual ($)</label><input id="contribActualH2" type="number" value="0" style="width:100%;"></div>
+          <div><label class="field-label">H2 plan ($)</label><input id="contribPlanH2" type="number" value="0" style="width:100%;"></div>
+        </div>
+        <div style="display:flex;gap:24px;margin-top:14px;font-size:12.5px;flex-wrap:wrap;">
+          <span style="color:var(--text2);">H1 factor: <span id="contribPayoutH1" class="mono" style="color:var(--text);font-weight:600;">0.00</span></span>
+          <span style="color:var(--text2);">H2 factor: <span id="contribPayoutH2" class="mono" style="color:var(--text);font-weight:600;">0.00</span></span>
+          <span style="color:var(--text2);">FY % of goal: <span id="contribPctFY" class="mono" style="color:var(--text);font-weight:600;">0%</span></span>
+          <span style="color:var(--text3);font-size:11px;">Min threshold 90% · floor 25% · sliding to 100%</span>
+        </div>
+      </div>
+
+      <!-- Quarterly kickers -->
+      <div class="section-heading"><span class="bar"></span>Quarterly kickers
+        <span class="chip" style="margin-left:8px;">Capped $1,500 / quarter</span>
+      </div>
+      <div class="card" style="overflow-x:auto;">
+        <table class="data" id="dsipKickerTable"></table>
+        <div style="margin-top:12px;font-size:12.5px;color:var(--text2);">Total kicker payout: <span id="kickerPayout" class="mono" style="color:var(--text);font-weight:600;">$0</span></div>
+      </div>
+
+      <!-- Full-year roll-up -->
+      <div class="section-heading"><span class="bar"></span>Full-year roll-up
+        <span class="chip" style="margin-left:8px;">Earnbacks · PFP · FY kicker</span>
+      </div>
+      <div class="card">
+        <div class="panel-sub" style="margin-bottom:14px;">Earnbacks recover a half you missed if your full-year result still qualifies (depletions ≥ 97.5%, contribution ≥ 95%). Requires year-end and active employment. Mirrors the Year-End column of the source sheet.</div>
+        <table class="data" id="dsipRollupTable"></table>
+      </div>
+      <div class="grid grid-4" id="dsipFySummary" style="margin-top:16px;"></div>
+      <div id="dsipRollupNote" style="font-size:11.5px;color:var(--warning);margin-top:12px;line-height:1.5;"></div>
+    </div>
+
+    <!-- ===== SETTINGS ===== -->
+    <div class="section" id="sec-settings">
+      <div class="topbar"><div><div class="page-title">Settings</div><div class="page-sub">Account, data sources &amp; preferences</div></div></div>
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="panel-title">Profile</div>
+          <div class="panel-sub">Executive identity</div>
+          <label class="field-label">Name</label>
+          <input value="Sales Manager" style="width:100%;margin-bottom:10px;">
+          <label class="field-label">Title</label>
+          <input value="Area Sales Manager" style="width:100%;margin-bottom:10px;">
+          <label class="field-label">Company</label>
+          <input value="Company 1" style="width:100%;">
+        </div>
+        <div class="card">
+          <div class="panel-title">Data sources</div>
+          <div class="panel-sub">Connected sync targets</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+            <span style="font-size:13px;">Google Sheets</span>
+            <span class="pill">Connect</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+            <span style="font-size:13px;">GitHub Pages deploy</span>
+            <span class="pill"><span class="dot"></span> Connected</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;">
+            <span style="font-size:13px;">Vercel (future)</span>
+            <span class="chip">Not configured</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ RIGHT PANEL ============ -->
+  <div id="rightPanel">
+    <div class="panel-title">AI insights</div>
+    <div class="panel-sub">Auto-generated, refreshed hourly</div>
+    <div id="insightFeed"></div>
+
+    <div class="panel-title" style="margin-top:24px;">Upcoming tasks</div>
+    <div class="panel-sub">Synced from account follow-ups</div>
+    <div id="taskFeed"></div>
+
+    <div class="panel-title" style="margin-top:24px;">Alerts</div>
+    <div class="panel-sub">Thresholds &amp; anomalies</div>
+    <div id="alertFeed"></div>
+  </div>
+
+</div>
+
+<!-- ============ GOAL MODAL ============ -->
+<div class="modal-overlay" id="goalModalOverlay">
+  <div class="modal">
+    <span class="close-x" onclick="closeGoalModal()">✕</span>
+    <div class="panel-title" style="margin-bottom:16px;">New goal</div>
+    <label class="field-label">Category</label>
+    <select id="newGoalCat" style="width:100%;margin-bottom:12px;">
+      <option>Professional</option><option>Sales</option>
+    </select>
+    <label class="field-label">Goal name</label>
+    <input id="newGoalName" style="width:100%;margin-bottom:12px;" placeholder="e.g. Hit 14,000 9L cases for the year">
+    <div style="display:flex;gap:10px;margin-bottom:12px;">
+      <div style="flex:1;"><label class="field-label">Target</label><input id="newGoalTarget" type="number" style="width:100%;"></div>
+      <div style="flex:1;"><label class="field-label">Current</label><input id="newGoalCurrent" type="number" style="width:100%;"></div>
+    </div>
+    <label class="field-label">Deadline</label>
+    <input id="newGoalDeadline" type="date" style="width:100%;margin-bottom:18px;">
+    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="addGoal()">Create goal</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   GOOGLE SHEETS SYNC
+   ============================================================ */
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzf7M-ZbOOI7YnYhoS4zW5YsTHuFF0fwK5sle9WRsuPHgjKcNKE-3Wk_xtkdKnwNwV8gw/exec';
+
+function setSyncStatus(msg, isError){
+  const el = document.getElementById('syncStatus');
+  if(!el) return;
+  el.textContent = msg;
+  el.style.color = isError ? 'var(--danger)' : 'var(--success)';
+}
+
+async function gsGet(action, params){
+  params = params || {};
+  const qs = new URLSearchParams(Object.assign({action}, params)).toString();
+  const res = await fetch(`${SHEETS_URL}?${qs}`);
+  if(!res.ok) throw new Error('Sheets GET failed: ' + res.status);
+  const json = await res.json();
+  if(!json.ok) throw new Error(json.error || 'Unknown Sheets error');
+  return json.data;
+}
+
+async function gsPost(body){
+  // Apps Script doPost doesn't return CORS headers for application/json preflight,
+  // so we send as text/plain (which Apps Script still parses fine via JSON.parse(e.postData.contents)).
+  const res = await fetch(SHEETS_URL, {
+    method: 'POST',
+    headers: {'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify(body)
+  });
+  if(!res.ok) throw new Error('Sheets POST failed: ' + res.status);
+  const json = await res.json();
+  if(!json.ok) throw new Error(json.error || 'Unknown Sheets error');
+  return json;
+}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const state = {
+  goals: [
+    {id:1,cat:'Sales',name:'Reach 15,200 9L cases — FY26',target:15200,current:11430,deadline:'2026-12-31'},
+    {id:2,cat:'Sales',name:'Open 40 new PODs in Retailer 1/Retailer 2',target:40,current:27,deadline:'2026-09-30'},
+  ],
+  templates: [
+    {name:'Retailer 1 weekly depletions',cols:['Account','Brand','9L Cases','Week Ending'],date:'2026-06-10'},
+    {name:'Retailer 5 monthly POD report',cols:['Store #','Item','POD Status','Region'],date:'2026-06-02'},
+  ],
+  importHistory: [
+    {file:'retailer1_depletions_wk24.xlsx',rows:340,date:'2026-06-16',status:'Synced'},
+    {file:'retailer2_pods_june.csv',rows:88,date:'2026-06-12',status:'Synced'},
+    {file:'total_wine_features.xlsx',rows:52,date:'2026-06-05',status:'Synced'},
+  ],
+  pendingImport: null
+};
+
+const KPI = [
+  {label:'9L case volume',value:'11,430',unit:'cases',change:'+4.2%',dir:'up',sub:'vs. last month'},
+  {label:'Revenue',value:'$1.84M',unit:'',change:'+6.8%',dir:'up',sub:'vs. last month'},
+  {label:'Active PODs',value:'1,247',unit:'',change:'+27',dir:'up',sub:'opened this quarter'},
+  {label:'Feature execution',value:'71%',unit:'',change:'-2.1%',dir:'down',sub:'of planned features'},
+];
+
+const COLORS = {blue:'#3B82F6',cyan:'#06B6D4',success:'#10B981',warning:'#F59E0B',danger:'#EF4444',text2:'#94A3B8'};
+
+/* ============================================================
+   ROUTER
+   ============================================================ */
+function route(name, navName){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-'+name).classList.add('active');
+  const activeNav = navName || name;
+  document.querySelectorAll('.navitem').forEach(n=>n.classList.toggle('active', n.dataset.route===activeNav));
+}
+document.querySelectorAll('.navitem').forEach(n=>n.addEventListener('click',()=>route(n.dataset.route)));
+
+/* ============================================================
+   LAUNCHER — links out to the other standalone tools
+   ============================================================ */
+const TOOLS = [
+  {
+    id:'stockpad', name:'StockPad', tagline:'Distributor inventory tracker',
+    desc:'Flags SKUs running low relative to sales pace across RNDC, Alliance, and Vintage exports.',
+    url:'https://andrewmonroe-dev.github.io/StockPad/', icon:'◆', accent:'#3B82F6'
+  },
+  {
+    id:'midmonth', name:'Volume Report Generator', tagline:'Mid-Month &amp; EOM reports',
+    desc:'Builds Delicato Family Wines distributor volume reports from pasted sheet data.',
+    url:'https://andrewmonroe-dev.github.io/MidMonthEOMGenerator/', icon:'▤', accent:'#06B6D4'
+  },
+  {
+    id:'gainers', name:'Gainers &amp; Drainers', tagline:'Chain account workbook rebuild',
+    desc:'Regenerates the Raw Data, Sales Trend Analysis, Dashboard, and Legend workbook from a raw export.',
+    url:'https://andrewmonroe-dev.github.io/gainers_drainers/', icon:'▲', accent:'#10B981'
+  },
+];
+
+function renderLauncher(){
+  document.getElementById('launcherGrid').innerHTML = TOOLS.map(t=>`
+    <div class="card lift launcher-card" onclick="openTool('${t.id}')">
+      <div class="launcher-icon" style="background:linear-gradient(135deg,${t.accent},${t.accent}aa);">${t.icon}</div>
+      <div class="launcher-name">${t.name}</div>
+      <div class="launcher-tagline">${t.tagline}</div>
+      <div class="launcher-desc">${t.desc}</div>
+      <button class="btn btn-primary" onclick="event.stopPropagation();openTool('${t.id}')">Open →</button>
+    </div>
+  `).join('');
+}
+renderLauncher();
+
+function openTool(id){
+  const tool = TOOLS.find(t=>t.id===id);
+  if(!tool) return;
+  document.getElementById('toolViewerTitle').textContent = tool.name;
+  document.getElementById('toolViewerSub').innerHTML = tool.tagline;
+  document.getElementById('toolViewerOpenNew').href = tool.url;
+
+  const frame = document.getElementById('toolViewerFrame');
+  const fallback = document.getElementById('toolViewerFallback');
+  fallback.style.display = 'none';
+
+  let loaded = false;
+  frame.onload = () => { loaded = true; };
+  frame.src = tool.url;
+
+  // Some sites block iframe embedding (X-Frame-Options / CSP frame-ancestors).
+  // There's no fully reliable cross-origin way to detect this, so use a timeout
+  // heuristic: if the load event hasn't fired shortly after navigation, assume
+  // it may be blocked and surface the "open in new tab" fallback prominently.
+  // The "Open in new tab" link above is always available regardless.
+  clearTimeout(window._toolViewerTimer);
+  window._toolViewerTimer = setTimeout(()=>{ if(!loaded) fallback.style.display='block'; }, 3500);
+
+  route('toolviewer', 'launcher');
+}
+
+/* ============================================================
+   CLOCK
+   ============================================================ */
+function tickClock(){
+  const d = new Date();
+  document.getElementById('liveClock').textContent = d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(tickClock,1000); tickClock();
+
+/* ============================================================
+   KPI ROW
+   ============================================================ */
+function iconBg(dir){
+  if(dir==='up') return 'background:rgba(16,185,129,.12);';
+  if(dir==='down') return 'background:rgba(239,68,68,.12);';
+  return 'background:rgba(148,163,184,.12);';
+}
+function renderKpis(){
+  const wrap = document.getElementById('kpiRow');
+  wrap.innerHTML = KPI.map(k=>`
+    <div class="card lift">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-foot ${k.dir==='up'?'up':'down'}">
+        ${k.dir==='up'?'▲':'▼'} ${k.change} <span class="neutral" style="font-weight:500;">${k.sub}</span>
+      </div>
+    </div>
+  `).join('');
+}
+renderKpis();
+
+/* sales page kpis (reuse) */
+document.getElementById('salesKpis').innerHTML = `
+  <div class="card"><div class="kpi-label">Volume MTD</div><div class="kpi-value">11,430</div><div class="kpi-foot up">▲ 4.2% <span class="neutral" style="font-weight:500;">vs LM</span></div></div>
+  <div class="card"><div class="kpi-label">Revenue MTD</div><div class="kpi-value">$1.84M</div><div class="kpi-foot up">▲ 6.8% <span class="neutral" style="font-weight:500;">vs LM</span></div></div>
+  <div class="card"><div class="kpi-label">Display activity</div><div class="kpi-value">63%</div><div class="kpi-foot up">▲ 5 pts <span class="neutral" style="font-weight:500;">of accounts</span></div></div>
+  <div class="card"><div class="kpi-label">New PODs (QTD)</div><div class="kpi-value">27</div><div class="kpi-foot neutral">on pace for 40</div></div>
+`;
+
+/* ============================================================
+   CHARTS
+   ============================================================ */
+Chart.defaults.color = COLORS.text2;
+Chart.defaults.font.family = "'Inter',sans-serif";
+Chart.defaults.font.size = 11;
+
+const months = ['Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun'];
+new Chart(document.getElementById('trendChart'),{
+  type:'line',
+  data:{labels:months,datasets:[
+    {label:'9L Cases',data:[7800,8200,9100,8700,9400,10100,10600,10900,11430],borderColor:COLORS.blue,backgroundColor:'rgba(59,130,246,.08)',fill:true,tension:.35,pointRadius:0,borderWidth:2,yAxisID:'y'},
+    {label:'Revenue ($K)',data:[1260,1310,1480,1390,1510,1620,1710,1760,1840],borderColor:COLORS.cyan,backgroundColor:'rgba(6,182,212,.06)',fill:true,tension:.35,pointRadius:0,borderWidth:2,yAxisID:'y1',borderDash:[4,3]},
+  ]},
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{grid:{color:'rgba(255,255,255,.04)'}},
+      y:{position:'left',grid:{color:'rgba(255,255,255,.04)'},title:{display:true,text:'Cases',color:COLORS.text2,font:{size:10}}},
+      y1:{position:'right',grid:{display:false},title:{display:true,text:'Revenue ($K)',color:COLORS.text2,font:{size:10}}},
+    }
+  }
+});
+
+new Chart(document.getElementById('catChart'),{
+  type:'doughnut',
+  data:{labels:['Red blends','Box wine','Premium varietal','Sparkling','Other'],
+    datasets:[{data:[34,28,21,11,6],backgroundColor:[COLORS.blue,COLORS.cyan,COLORS.success,COLORS.warning,'#5B6677'],borderWidth:0}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false}}}
+});
+
+new Chart(document.getElementById('acctChart'),{
+  type:'bar',
+  data:{labels:['Retailer 2 #142','Retailer 1 #318','Retailer 6 - Store A','Retailer 3 #2210','Retailer 5 #66'],
+    datasets:[{data:[820,710,690,540,470],backgroundColor:COLORS.blue,borderRadius:5}]},
+  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{grid:{color:'rgba(255,255,255,.04)'}},y:{grid:{display:false}}}}
+});
+
+new Chart(document.getElementById('brandChart'),{
+  type:'bar',
+  data:{labels:['Brand 1','Brand 2','Brand 3','Brand 4','Other'],
+    datasets:[{data:[4200,3100,2400,1300,430],backgroundColor:[COLORS.blue,COLORS.cyan,COLORS.success,COLORS.warning,'#5B6677'],borderRadius:6}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(255,255,255,.04)'}}}}
+});
+
+/* ============================================================
+   GOALS
+   ============================================================ */
+function statusFor(pct){
+  if(pct>=90) return {label:'On track',color:COLORS.success,bg:'rgba(16,185,129,.12)'};
+  if(pct>=60) return {label:'In progress',color:COLORS.blue,bg:'rgba(59,130,246,.12)'};
+  if(pct>=30) return {label:'Needs attention',color:COLORS.warning,bg:'rgba(245,158,11,.12)'};
+  return {label:'At risk',color:COLORS.danger,bg:'rgba(239,68,68,.12)'};
+}
+function catColor(cat){
+  const map = {Sales:COLORS.blue,Professional:'#5B6677'};
+  return map[cat]||COLORS.text2;
+}
+function renderGoals(filter){
+  filter = filter||'All';
+  const list = state.goals.filter(g=>filter==='All'||g.cat===filter);
+  document.getElementById('goalList').innerHTML = list.map(g=>{
+    const pct = Math.min(100, Math.round((g.current/g.target)*100));
+    const s = statusFor(pct);
+    const c = catColor(g.cat);
+    const days = Math.ceil((new Date(g.deadline) - new Date())/86400000);
+    return `<div class="goal-card">
+      <div class="goal-top">
+        <div style="flex:1;">
+          <span class="goal-cat" style="background:${c}22;color:${c};">${g.cat}</span>
+          <div class="goal-name">${g.name}</div>
+          <div class="goal-meta">Target ${g.target.toLocaleString()} &nbsp;·&nbsp; Current ${g.current.toLocaleString()} &nbsp;·&nbsp; ${days>0?days+' days left':'past due'}</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="goal-pct" style="color:${c};">${pct}%</div>
+          <span class="status-badge" style="background:${s.bg};color:${s.color};">● ${s.label}</span>
+        </div>
+      </div>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:linear-gradient(90deg,${c},${c}aa);"></div></div>
+    </div>`;
+  }).join('') || '<div style="color:var(--text2);font-size:13px;padding:20px;">No goals in this category yet.</div>';
+}
+renderGoals();
+document.querySelectorAll('#goalTabs .tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('#goalTabs .tab').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  renderGoals(t.dataset.cat);
+}));
+
+function renderGoalSnapshot(){
+  const top3 = state.goals.slice(0,3);
+  document.getElementById('goalSnapshot').innerHTML = top3.map(g=>{
+    const pct = Math.min(100, Math.round((g.current/g.target)*100));
+    const c = catColor(g.cat);
+    return `<div class="card">
+      <div class="kpi-label">${g.name}</div>
+      <div style="font-size:22px;font-weight:700;margin-top:8px;color:${c};font-family:'JetBrains Mono',monospace;">${pct}%</div>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${c};"></div></div>
+    </div>`;
+  }).join('');
+}
+renderGoalSnapshot();
+
+function openGoalModal(){document.getElementById('goalModalOverlay').classList.add('open');}
+function closeGoalModal(){document.getElementById('goalModalOverlay').classList.remove('open');}
+async function addGoal(){
+  const name = document.getElementById('newGoalName').value.trim();
+  if(!name) return;
+  const goal = {
+    id: Date.now(),
+    cat: document.getElementById('newGoalCat').value,
+    name,
+    target: parseFloat(document.getElementById('newGoalTarget').value)||100,
+    current: parseFloat(document.getElementById('newGoalCurrent').value)||0,
+    deadline: document.getElementById('newGoalDeadline').value || '2026-12-31'
+  };
+  state.goals.push(goal);
+  closeGoalModal();
+  renderGoals(document.querySelector('#goalTabs .tab.active').dataset.cat);
+  renderGoalSnapshot();
+  document.getElementById('newGoalName').value='';
+
+  setSyncStatus('Saving to Sheets...', false);
+  try{
+    await gsPost({action:'addGoal', row:{
+      ID: goal.id, title: goal.name, category: goal.cat,
+      status: 'active', progress: goal.current, target: goal.target, deadline: goal.deadline
+    }});
+    setSyncStatus('✓ Synced', false);
+  }catch(err){
+    setSyncStatus('⚠ Sync failed — saved locally only', true);
+    console.error(err);
+  }
+}
+
+async function loadGoalsFromSheets(){
+  setSyncStatus('Loading from Sheets...', false);
+  try{
+    const rows = await gsGet('getGoals');
+    if(rows && rows.length){
+      state.goals = rows.map(r=>({
+        id: r.ID || Date.now()+Math.random(),
+        cat: r.category || 'Professional',
+        name: r.title || '(untitled goal)',
+        target: parseFloat(r.target)||100,
+        current: parseFloat(r.progress)||0,
+        deadline: r.deadline || '2026-12-31'
+      }));
+      const activeTab = document.querySelector('#goalTabs .tab.active');
+      renderGoals(activeTab ? activeTab.dataset.cat : 'All');
+      renderGoalSnapshot();
+      setSyncStatus('✓ Synced from Sheets', false);
+    } else {
+      setSyncStatus('Sheets connected — no goals saved yet', false);
+    }
+  }catch(err){
+    setSyncStatus('⚠ Could not reach Sheets — showing local data', true);
+    console.error(err);
+  }
+}
+loadGoalsFromSheets();
+
+/* ============================================================
+   CHAIN / DISTRIBUTOR / ACCOUNT TABLES
+   ============================================================ */
+const chainData = [
+  ['Retailer 1','3,420','+5.1%','312','68%'],
+  ['Retailer 2','2,810','+3.4%','268','71%'],
+  ['Retailer 3','1,990','-1.2%','190','54%'],
+  ['Retailer 4','1,340','+2.0%','140','59%'],
+  ['Retailer 5','980','+6.7%','98','62%'],
+  ['Retailer 6','870','+8.9%','64','77%'],
+];
+document.getElementById('chainTable').innerHTML = `
+  <thead><tr><th>Chain</th><th>9L Cases</th><th>MoM</th><th>PODs</th><th>Feature exec.</th></tr></thead>
+  <tbody>${chainData.map(r=>`<tr><td>${r[0]}</td><td class="mono">${r[1]}</td><td style="color:${r[2][0]==='+'?'#10B981':'#EF4444'};">${r[2]}</td><td class="mono">${r[3]}</td><td class="mono">${r[4]}</td></tr>`).join('')}</tbody>`;
+
+const distScores = [
+  {name:'Distributor 1',score:87,trend:'up'},
+];
+document.getElementById('distCards').innerHTML = distScores.map(d=>`
+  <div class="card">
+    <div class="kpi-label">${d.name}</div>
+    <div class="kpi-value" style="color:${COLORS.success};">${d.score}<span style="font-size:14px;color:var(--text2);">/100</span></div>
+    <div class="kpi-foot up">▲ improved 7 of 10 key accounts</div>
+  </div>
+  <div class="card">
+    <div class="kpi-label">Active brands managed</div>
+    <div class="kpi-value">19</div>
+    <div class="kpi-foot neutral">weighted scorecard, 454 formulas</div>
+  </div>
+  <div class="card">
+    <div class="kpi-label">Execution accounts tracked</div>
+    <div class="kpi-value">142</div>
+    <div class="kpi-foot up">▲ 12 added this quarter</div>
+  </div>
+`).join('');
+
+const distRows = [
+  ['Order accuracy','22%','94%','21.3'],
+  ['On-time delivery','20%','91%','18.2'],
+  ['POD compliance','18%','88%','15.8'],
+  ['Display execution','15%','71%','10.7'],
+  ['Pricing compliance','12%','97%','11.6'],
+  ['Communication / responsiveness','13%','89%','11.6'],
+];
+document.getElementById('distTable').innerHTML = `
+  <thead><tr><th>Category</th><th>Weight</th><th>Score</th><th>Weighted pts</th></tr></thead>
+  <tbody>${distRows.map(r=>`<tr><td>${r[0]}</td><td class="mono">${r[1]}</td><td class="mono">${r[2]}</td><td class="mono">${r[3]}</td></tr>`).join('')}</tbody>`;
+
+const accounts = [
+  ['Retailer 2 #142','Retail','Region A','Gold','820'],
+  ['Retailer 1 #318','Retail','Region B','Gold','710'],
+  ['Retailer 6 - Store A','Retail','Region C','Gold','690'],
+  ['Retailer 3 #2210','Retail','Region D','Silver','540'],
+  ['Retailer 5 #66','Retail','Region E','Silver','470'],
+  ['The Cellar Bistro','On-premise','Petoskey','Bronze','140'],
+  ['Harbor House Grill','On-premise','Charlevoix','Bronze','112'],
+  ['Lakeshore Tavern','On-premise','Holland','Bronze','98'],
+];
+function renderAccounts(filterText){
+  filterText = (filterText||'').toLowerCase();
+  const rows = accounts.filter(a=>a[0].toLowerCase().includes(filterText));
+  document.getElementById('acctTable').innerHTML = `
+    <thead><tr><th>Account</th><th>Channel</th><th>Region</th><th>Tier</th><th>9L Cases (30d)</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td><span class="chip">${r[3]}</span></td><td class="mono">${r[4]}</td></tr>`).join('')}</tbody>`;
+}
+renderAccounts();
+document.getElementById('acctSearch').addEventListener('input',e=>renderAccounts(e.target.value));
+
+/* ============================================================
+   AI INSIGHTS / TASKS / ALERTS
+   ============================================================ */
+const insights = [
+  {tag:'VOLUME',color:COLORS.success,text:'9L case volume is trending 4.2% ahead of last month, led by Brand 1 growth in Retailer 2 and Retailer 1.',time:'12 min ago'},
+  {tag:'EXECUTION',color:COLORS.blue,text:'Distributor execution improved in 7 of 10 key accounts this week, with display compliance the strongest driver.',time:'1 hr ago'},
+  {tag:'RISK',color:COLORS.warning,text:'Feature execution dipped 2.1% — Retailer 3 #2210 fell off planned ad placement for week 24.',time:'2 hr ago'},
+  {tag:'POD',color:COLORS.cyan,text:'POD hit rate climbed to 8 of 10 SKUs this period, putting the H2 payout factor at 0.85.',time:'4 hr ago'},
+  {tag:'GOAL',color:'#A78BFA',text:'PODs goal is 68% complete with 3 months remaining — on pace to finish ahead of the September target.',time:'Yesterday'},
+];
+document.getElementById('insightFeed').innerHTML = insights.slice(0,4).map(i=>`
+  <div class="insight-item">
+    <span class="insight-tag" style="color:${i.color};">${i.tag}</span>
+    <div class="insight-text">${i.text}</div>
+    <div class="insight-time">${i.time}</div>
+  </div>`).join('');
+document.getElementById('insightFull').innerHTML = insights.map(i=>`
+  <div class="insight-item">
+    <span class="insight-tag" style="color:${i.color};">${i.tag}</span>
+    <div class="insight-text">${i.text}</div>
+    <div class="insight-time">${i.time}</div>
+  </div>`).join('');
+
+const tasks = [
+  {text:'Call back Retailer 6 - Store A re: Q3 display reset',done:false,meta:'Due tomorrow'},
+  {text:'Submit weekly recap to Distributor 1',done:false,meta:'Due Friday'},
+  {text:'Review Retailer 5 POD compliance report',done:true,meta:'Completed'},
+  {text:'Follow up on Retailer 3 #2210 ad placement gap',done:false,meta:'Due in 2 days'},
+];
+document.getElementById('taskFeed').innerHTML = tasks.map(t=>`
+  <div class="task-item">
+    <div class="task-check ${t.done?'done':''}"></div>
+    <div>
+      <div class="task-text ${t.done?'done':''}">${t.text}</div>
+      <div class="task-meta">${t.meta}</div>
+    </div>
+  </div>`).join('');
+
+const alerts = [
+  {text:'Retailer 3 #2210 feature compliance below 60% threshold',sev:'warning'},
+  {text:'Brand 1 velocity up 12% — consider expanding facings',sev:'success'},
+];
+document.getElementById('alertFeed').innerHTML = alerts.map(a=>`
+  <div class="insight-item" style="border-left:2px solid ${a.sev==='warning'?COLORS.warning:COLORS.success};">
+    <div class="insight-text">${a.text}</div>
+  </div>`).join('');
+
+/* ============================================================
+   REPORTS
+   ============================================================ */
+const reports = [
+  {name:'Monthly DFW sales recap — June 2026',date:'Jun 16, 2026',
+    body:'9L case volume: 11,430 (+4.2% vs. last month)\nRevenue: $1.84M (+6.8% vs. last month)\nActive PODs: 1,247 (+27 opened this quarter)\nFeature execution: 71% of planned features (-2.1% vs. last month)\n\nTop movers:\n- Retailer 2 #142: 820 cases, trailing 30 days\n- Retailer 1 #318: 710 cases, trailing 30 days\n- Retailer 6 - Store A: 690 cases, trailing 30 days\n\nNotes:\nRetailer 3 #2210 fell off planned ad placement for week 24, dragging feature execution down. Brand 1 continues to lead category growth.'},
+  {name:'Distributor scorecard — Q2 2026',date:'Jun 10, 2026',
+    body:'Distributor 1 — weighted scorecard: 87/100\n\nOrder accuracy: 94% (weight 22%)\nOn-time delivery: 91% (weight 20%)\nPOD compliance: 88% (weight 18%)\nDisplay execution: 71% (weight 15%)\nPricing compliance: 97% (weight 12%)\nCommunication / responsiveness: 89% (weight 13%)\n\nActive brands managed: 19\nExecution accounts tracked: 142 (+12 this quarter)\nImproved in 7 of 10 key accounts week over week.'},
+  {name:'Account call tracker summary',date:'Jun 3, 2026',
+    body:'Open follow-ups:\n- Call back Retailer 6 - Store A re: Q3 display reset (due tomorrow)\n- Submit weekly recap to Distributor 1 (due Friday)\n- Follow up on Retailer 3 #2210 ad placement gap (due in 2 days)\n\nCompleted:\n- Reviewed Retailer 5 POD compliance report\n\nAlerts:\n- Retailer 3 #2210 feature compliance below 60% threshold\n- Brand 1 velocity up 12% — consider expanding facings'},
+];
+document.getElementById('reportCards').innerHTML = reports.map((r,i)=>`
+  <div class="card lift">
+    <div class="panel-title">${r.name}</div>
+    <div class="panel-sub">Generated ${r.date}</div>
+    <button class="btn" style="margin-top:6px;" onclick="downloadReport(${i})">Download</button>
+  </div>`).join('');
+
+function downloadReport(i){
+  const r = reports[i];
+  const filename = r.name.replace(/[^a-z0-9]+/gi,'_').replace(/^_+|_+$/g,'').toLowerCase() + '.txt';
+  const content = `${r.name}\nGenerated ${r.date}\n${'='.repeat(r.name.length)}\n\n${r.body}\n`;
+  const blob = new Blob([content], {type:'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ============================================================
+   EXCEL / CSV IMPORT
+   ============================================================ */
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+dropzone.addEventListener('click',()=>fileInput.click());
+dropzone.addEventListener('dragover',e=>{e.preventDefault();dropzone.classList.add('drag');});
+dropzone.addEventListener('dragleave',()=>dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop',e=>{
+  e.preventDefault();dropzone.classList.remove('drag');
+  if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change',e=>{ if(e.target.files.length) handleFile(e.target.files[0]); });
+
+function handleFile(file){
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    const data = new Uint8Array(e.target.result);
+    const wb = XLSX.read(data,{type:'array'});
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(sheet,{defval:''});
+    if(!json.length){ alert('No rows detected in this file.'); return; }
+    const cols = Object.keys(json[0]);
+    state.pendingImport = {fileName:file.name, cols, rows:json};
+    renderImportPreview();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function guessFieldType(col){
+  const c = col.toLowerCase();
+  if(c.includes('date')||c.includes('week')) return 'Date';
+  if(c.includes('case')||c.includes('qty')||c.includes('volume')||c.includes('rev')||c.includes('$')) return 'Number';
+  if(c.includes('account')||c.includes('store')||c.includes('chain')) return 'Account';
+  if(c.includes('brand')||c.includes('item')||c.includes('sku')) return 'Product';
+  return 'Text';
+}
+
+function renderImportPreview(){
+  const {fileName, cols, rows} = state.pendingImport;
+  document.getElementById('importPreviewWrap').style.display='block';
+  document.getElementById('rowCountChip').textContent = rows.length + ' rows · ' + fileName;
+
+  document.getElementById('mappingCard').innerHTML = `
+    <div class="grid grid-3">
+    ${cols.map(c=>`
+      <div>
+        <label class="field-label">${c}</label>
+        <select style="width:100%;">
+          <option ${guessFieldType(c)==='Date'?'selected':''}>Date</option>
+          <option ${guessFieldType(c)==='Number'?'selected':''}>Number</option>
+          <option ${guessFieldType(c)==='Account'?'selected':''}>Account</option>
+          <option ${guessFieldType(c)==='Product'?'selected':''}>Product</option>
+          <option ${guessFieldType(c)==='Text'?'selected':''}>Text</option>
+          <option>Ignore</option>
+        </select>
+      </div>`).join('')}
+    </div>`;
+
+  const previewRows = rows.slice(0,12);
+  document.getElementById('previewTable').innerHTML = `
+    <thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+    <tbody>${previewRows.map(r=>`<tr>${cols.map(c=>`<td>${r[c]}</td>`).join('')}</tr>`).join('')}</tbody>`;
+
+  document.getElementById('importStatus').textContent='';
+}
+
+function saveTemplate(){
+  const name = document.getElementById('templateName').value.trim();
+  if(!name || !state.pendingImport) return;
+  state.templates.push({name, cols:state.pendingImport.cols, date:new Date().toISOString().slice(0,10)});
+  renderTemplates();
+  document.getElementById('templateName').value='';
+}
+
+async function confirmImport(){
+  if(!state.pendingImport) return;
+  const {fileName, rows} = state.pendingImport;
+  document.getElementById('importStatus').textContent = 'Syncing to Google Sheets...';
+  document.getElementById('importStatus').style.color = 'var(--text2)';
+  try{
+    await gsPost({action:'importRows', rows});
+    state.importHistory.unshift({
+      file: fileName, rows: rows.length,
+      date: new Date().toISOString().slice(0,10), status: 'Synced'
+    });
+    renderHistory();
+    document.getElementById('importStatus').textContent = '✓ Imported and synced to Google Sheets';
+    document.getElementById('importStatus').style.color = 'var(--success)';
+  }catch(err){
+    state.importHistory.unshift({
+      file: fileName, rows: rows.length,
+      date: new Date().toISOString().slice(0,10), status: 'Sync failed'
+    });
+    renderHistory();
+    document.getElementById('importStatus').textContent = '⚠ Import saved locally — Sheets sync failed';
+    document.getElementById('importStatus').style.color = 'var(--danger)';
+    console.error(err);
+  }
+}
+
+function renderTemplates(){
+  document.getElementById('templateList').innerHTML = state.templates.map(t=>`
+    <div class="card">
+      <div class="panel-title" style="font-size:13px;">${t.name}</div>
+      <div class="panel-sub">Saved ${t.date}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
+        ${t.cols.map(c=>`<span class="chip">${c}</span>`).join('')}
+      </div>
+    </div>`).join('');
+}
+function renderHistory(){
+  document.getElementById('historyTable').innerHTML = `
+    <thead><tr><th>File</th><th>Rows</th><th>Date</th><th>Status</th></tr></thead>
+    <tbody>${state.importHistory.map(h=>`<tr><td>${h.file}</td><td class="mono">${h.rows}</td><td>${h.date}</td><td><span class="pill" style="display:inline-flex;">${h.status}</span></td></tr>`).join('')}</tbody>`;
+}
+/* ============================================================
+   DSIP PAYOUT CALCULATOR — exact reproduction of Excel formulas
+   ============================================================ */
+const dsipState = {
+  // each brand carries H1 and H2 actuals + plans so earnbacks can use both halves
+  // TEMPLATE: all plan/actual numbers start at 0 — fill in your real plan numbers below
+  depl: [
+    {name:'Brand 1', weight:0.20, aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'Brand 2', weight:0.10, aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'Brand 3', weight:0.20, aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'Brand 4', weight:0.10, aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'Brand 5', weight:0.10, aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'Brand 6', weight:0.10, aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'Brand 7', weight:0.05, aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'Brand 8', weight:0.05, aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'On-Premise', weight:0.10, aH1:0, aH2:0, pH1:0, pH2:0},
+  ],
+  pod: [
+    {name:'POD SKU 1', aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'POD SKU 2', aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'POD SKU 3', aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'POD SKU 4', aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'POD SKU 5', aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'POD SKU 6', aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'POD SKU 7', aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'POD SKU 8', aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'POD SKU 9', aH1:0, aH2:0, pH1:0, pH2:0},
+    {name:'POD SKU 10', aH1:0, aH2:0, pH1:0, pH2:0},
+  ],
+  // four quarters, each capped at $1,500
+  kickers: [
+    {q:'Q1', name:'Kicker line', rate:0, units:0},
+    {q:'Q2', name:'Kicker line', rate:0, units:0},
+    {q:'Q3', name:'Kicker line', rate:0, units:0},
+    {q:'Q4', name:'Kicker line', rate:0, units:0},
+  ],
+  W_DEPL:0.30, W_POD:0.10, W_CONTRIB:0.10,
+  FY_KICKER_RATE:600, // $ per FY contribution point over 100% (Excel S47)
+};
+
+function deplTierPayout(actual, plan, weight){
+  if(plan <= 0) return 0;
+  const pct = Math.round((actual/plan)*100)/100;
+  const pct3 = Math.round((actual/plan)*1000)/1000;
+  if(pct >= 1.00) return weight;
+  if(pct3 >= 0.975) return weight*0.75;
+  if(pct >= 0.95) return weight*0.50;
+  return 0;
+}
+function podLookup(hitCount){
+  const table = [[5,0.5],[6,0.6],[7,0.7],[8,0.85],[9,1.0],[10,1.2]];
+  let result = 0;
+  for(const [k,v] of table){ if(hitCount >= k) result = v; }
+  return result;
+}
+const ContribMinThreshold = 0.9, ContribPctMin = 0.25;
+function contribPayoutFactor(actual, plan, weight){
+  if(plan <= 0) return 0;
+  const ratio = actual/plan;
+  let raw = ratio < ContribMinThreshold ? 0
+    : (weight*ContribPctMin) + ((weight - weight*ContribPctMin) * (Math.max(ratio-ContribMinThreshold,0)/0.1));
+  return weight > 0 ? Math.min(raw, weight)/weight : 0;
+}
+// Depletion earnback per brand — Excel S15 logic
+function deplEarnback(aH1,pH1,aH2,pH2,weight,eligH1,eligH2,yearEnd,notTermed){
+  const fyPlan = pH1 + pH2;
+  if(fyPlan<=0) return 0;
+  const fyPct3 = Math.round(((aH1+aH2)/fyPlan)*1000)/1000;
+  if(!(yearEnd && notTermed && fyPct3 >= 0.975)) return 0;
+  const fRound = pH1>0 ? Math.round((aH1/pH1)*100)/100 : 0;
+  const m      = pH2>0 ? Math.round((aH2/pH2)*100)/100 : 0;
+  const recovered = (weight+weight) - (deplTierPayout(aH1,pH1,weight)+deplTierPayout(aH2,pH2,weight));
+  return (fRound>1 && m<1) ? recovered*eligH1 : recovered*eligH2;
+}
+// Contribution earnback — Excel S46 logic
+function contribEarnback(aH1,pH1,aH2,pH2,w,eligH1,eligH2,yearEnd,notTermed){
+  const fyPlan=pH1+pH2;
+  if(fyPlan<=0) return 0;
+  const r46 = (aH1+aH2)/fyPlan;
+  if(!(yearEnd && notTermed && r46 >= 0.95)) return 0;
+  const g46 = contribPayoutFactor(aH1,pH1,w), n46 = contribPayoutFactor(aH2,pH2,w);
+  const recovered = (w+w) - (g46*w + n46*w);
+  const f46 = pH1>0 ? aH1/pH1 : 0, m46 = pH2>0 ? aH2/pH2 : 0;
+  return (f46>1 && m46<1) ? recovered*eligH1 : recovered*eligH2;
+}
+// FY contribution kicker $ — Excel T47 * R5
+function fyContribKickerDollars(fyActual,fyPlan,ratePerPoint,fyElig){
+  const r46 = fyPlan>0 ? fyActual/fyPlan : 0;
+  const t47 = ratePerPoint >= 1 ? Math.max(r46-1,0)*100*ratePerPoint : Math.max((fyActual-fyPlan)*ratePerPoint,0);
+  return t47 * fyElig;
+}
+
+function currentHalf(){ return document.getElementById('dsipHalf').value; }
+function num(id){ return parseFloat(document.getElementById(id).value)||0; }
+
+// Returns the actual/plan key pair for a given period, treating FY as a
+// read-only derived sum of H1+H2 (actual sums automatically; plan is edited
+// per-half and FY plan shown is just pH1+pH2, recomputed live).
+function periodKeys(period){
+  if(period==='H1') return {aKey:'aH1', pKey:'pH1'};
+  if(period==='H2') return {aKey:'aH2', pKey:'pH2'};
+  return {aKey:'FY', pKey:'FY'}; // FY handled specially below
+}
+
+function buildDeplTableSkeleton(){
+  const half = currentHalf();
+  const isFY = half==='FY';
+  const aKey = half==='H1'?'aH1':'aH2', pKey = half==='H1'?'pH1':'pH2';
+  const rows = dsipState.depl.map((b,i)=>{
+    const actual = isFY ? (b.aH1+b.aH2) : b[aKey];
+    const plan   = isFY ? (b.pH1+b.pH2) : b[pKey];
+    return `<tr data-row="${i}">
+      <td><input type="text" value="${b.name}" data-dtype="deplname" data-i="${i}" style="width:160px;padding:5px 8px;"></td>
+      <td class="mono">${(b.weight*100).toFixed(0)}%</td>
+      <td>${isFY
+          ? `<span class="mono" style="color:var(--text2);" data-cell="actual">${actual.toLocaleString()}</span>`
+          : `<input type="number" value="${actual}" data-dtype="depl" data-i="${i}" style="width:110px;padding:5px 8px;">`}</td>
+      <td>${isFY
+          ? `<span class="mono" style="color:var(--text2);" data-cell="plan">${plan.toLocaleString()}</span>`
+          : `<input type="number" value="${plan}" data-dtype="deplplan" data-i="${i}" style="width:110px;padding:5px 8px;">`}</td>
+      <td class="mono" data-cell="pct">0.0%</td>
+      <td class="mono" data-cell="payout">0.000</td>
+    </tr>`;
+  }).join('');
+  const label = isFY ? 'Full year' : half;
+  document.getElementById('dsipDeplTable').innerHTML =
+    `<thead><tr><th>Brand</th><th>Weight</th><th>${label} actual</th><th>${label} plan</th><th>% of goal</th><th>Payout</th></tr></thead><tbody>${rows}</tbody>`;
+}
+
+function buildPodTableSkeleton(){
+  const half = currentHalf();
+  const isFY = half==='FY';
+  const aKey = half==='H1'?'aH1':'aH2', pKey = half==='H1'?'pH1':'pH2';
+  const rows = dsipState.pod.map((p,i)=>{
+    const actual = isFY ? (p.aH1+p.aH2) : p[aKey];
+    const plan   = isFY ? (p.pH1+p.pH2) : p[pKey];
+    return `<tr data-row="${i}">
+      <td><input type="text" value="${p.name}" data-dtype="podname" data-i="${i}" style="width:170px;padding:5px 8px;"></td>
+      <td>${isFY
+          ? `<span class="mono" style="color:var(--text2);" data-cell="actual">${actual.toLocaleString()}</span>`
+          : `<input type="number" value="${actual}" data-dtype="pod" data-i="${i}" style="width:110px;padding:5px 8px;">`}</td>
+      <td>${isFY
+          ? `<span class="mono" style="color:var(--text2);" data-cell="plan">${plan.toLocaleString()}</span>`
+          : `<input type="number" value="${plan}" data-dtype="podplan" data-i="${i}" style="width:110px;padding:5px 8px;">`}</td>
+      <td class="mono" data-cell="pct">0%</td>
+      <td style="font-weight:700;" data-cell="hit">—</td>
+    </tr>`;
+  }).join('');
+  const label = isFY ? 'Full year' : half;
+  document.getElementById('dsipPodTable').innerHTML =
+    `<thead><tr><th>SKU</th><th>${label} actual</th><th>${label} plan</th><th>% of goal</th><th>Hit</th></tr></thead><tbody>${rows}</tbody>`;
+}
+
+// Patches the derived (read-only) cells in place — never touches <input> elements,
+// so focus and in-progress typing are never interrupted.
+function patchDeplTable(){
+  const half = currentHalf();
+  const isFY = half==='FY';
+  const aKey = half==='H1'?'aH1':'aH2', pKey = half==='H1'?'pH1':'pH2';
+  let deplPayout = 0, deplHits = 0, deplTotal = 0;
+  const tbody = document.querySelector('#dsipDeplTable tbody');
+  if(!tbody) return {deplPayout,deplHits,deplTotal};
+  dsipState.depl.forEach((b,i)=>{
+    const actual = isFY ? (b.aH1+b.aH2) : b[aKey];
+    const plan   = isFY ? (b.pH1+b.pH2) : b[pKey];
+    const pct = plan>0 ? actual/plan : 0;
+    // FY payout shown is the sum of each half's own tiered payout (not a single FY-ratio tier) —
+    // matches how the rest of the engine treats FY as H1+H2, not a re-tiered combined ratio.
+    const payout = isFY
+      ? deplTierPayout(b.aH1, b.pH1, b.weight) + deplTierPayout(b.aH2, b.pH2, b.weight)
+      : deplTierPayout(actual, plan, b.weight);
+    deplPayout += isFY ? payout/2 : payout; // keep deplPayout comparable in scale to half-view sums
+    if(pct >= 1) deplHits++;
+    if(plan>0) deplTotal++;
+    const tr = tbody.querySelector(`tr[data-row="${i}"]`);
+    if(!tr) return;
+    const pctColor = pct>=1?'#10B981':pct>=0.95?'#F59E0B':'#EF4444';
+    const planCell = tr.querySelector('[data-cell="plan"]');
+    if(planCell) planCell.textContent = plan.toLocaleString();
+    const actualCell = tr.querySelector('[data-cell="actual"]');
+    if(actualCell) actualCell.textContent = actual.toLocaleString();
+    const pctCell = tr.querySelector('[data-cell="pct"]');
+    pctCell.textContent = (pct*100).toFixed(1)+'%';
+    pctCell.style.color = pctColor;
+    tr.querySelector('[data-cell="payout"]').textContent = payout.toFixed(3);
+  });
+  return {deplPayout, deplHits, deplTotal};
+}
+
+function patchPodTable(){
+  const half = currentHalf();
+  const isFY = half==='FY';
+  const aKey = half==='H1'?'aH1':'aH2', pKey = half==='H1'?'pH1':'pH2';
+  let podHits = 0;
+  const tbody = document.querySelector('#dsipPodTable tbody');
+  if(!tbody) return {podHits};
+  dsipState.pod.forEach((p,i)=>{
+    const actual = isFY ? (p.aH1+p.aH2) : p[aKey];
+    const plan   = isFY ? (p.pH1+p.pH2) : p[pKey];
+    const pct = plan>0 ? Math.round((actual/plan)*100)/100 : 0;
+    const hit = pct >= 1;
+    if(hit) podHits++;
+    const tr = tbody.querySelector(`tr[data-row="${i}"]`);
+    if(!tr) return;
+    const planCell = tr.querySelector('[data-cell="plan"]');
+    if(planCell) planCell.textContent = plan.toLocaleString();
+    const actualCell = tr.querySelector('[data-cell="actual"]');
+    if(actualCell) actualCell.textContent = actual.toLocaleString();
+    tr.querySelector('[data-cell="pct"]').textContent = (pct*100).toFixed(0)+'%';
+    const hitCell = tr.querySelector('[data-cell="hit"]');
+    hitCell.textContent = hit?'✓':'—';
+    hitCell.style.color = hit?'#10B981':'#5B6677';
+  });
+  return {podHits};
+}
+
+function buildKickerTableSkeleton(){
+  const rows = dsipState.kickers.map((k,i)=>`<tr data-row="${i}">
+      <td><span class="chip">${k.q}</span></td>
+      <td><input type="number" value="${k.rate}" data-dtype="krate" data-i="${i}" style="width:80px;padding:5px 8px;"> <span style="color:var(--text3);font-size:11px;">$/cs</span></td>
+      <td><input type="number" value="${k.units}" data-dtype="kunits" data-i="${i}" style="width:100px;padding:5px 8px;"></td>
+      <td class="mono" data-cell="payout">$0</td>
+    </tr>`).join('');
+  document.getElementById('dsipKickerTable').innerHTML =
+    `<thead><tr><th>Quarter</th><th>Rate</th><th>Units</th><th>Payout (cap $1.5k)</th></tr></thead><tbody>${rows}</tbody>`;
+}
+
+function renderDsip(){
+  const half = currentHalf();
+  const isH1 = half==='H1';
+
+  const {deplPayout, deplHits, deplTotal} = patchDeplTable();
+  document.getElementById('deplPayout').textContent = deplPayout.toFixed(3);
+  document.getElementById('deplHits').textContent = `${deplHits} of ${deplTotal}`;
+
+  const {podHits} = patchPodTable();
+  const podFactor = podLookup(podHits);
+  document.getElementById('podHits').textContent = podHits;
+  document.getElementById('podPayout').textContent = podFactor.toFixed(2);
+
+  const cAH1=num('contribActualH1'), cPH1=num('contribPlanH1'), cAH2=num('contribActualH2'), cPH2=num('contribPlanH2');
+  const cFactorH1 = contribPayoutFactor(cAH1, cPH1, dsipState.W_CONTRIB);
+  const cFactorH2 = contribPayoutFactor(cAH2, cPH2, dsipState.W_CONTRIB);
+  const cFactor = isH1 ? cFactorH1 : cFactorH2;
+  const fyContribPct = (cPH1+cPH2)>0 ? (cAH1+cAH2)/(cPH1+cPH2) : 0;
+  document.getElementById('contribPayoutH1').textContent = cFactorH1.toFixed(2);
+  document.getElementById('contribPayoutH2').textContent = cFactorH2.toFixed(2);
+  document.getElementById('contribPctFY').textContent = (fyContribPct*100).toFixed(1)+'%';
+
+  // ---- Kickers (4 quarters, each capped $1,500) — patch payout cells, don't rebuild inputs ----
+  let kH1=0, kH2=0;
+  const kbody = document.querySelector('#dsipKickerTable tbody');
+  dsipState.kickers.forEach((k,i)=>{
+    const raw = k.rate * k.units;
+    const capped = Math.min(raw, 1500);
+    if(k.q==='Q1'||k.q==='Q2') kH1 += capped; else kH2 += capped;
+    if(kbody){
+      const tr = kbody.querySelector(`tr[data-row="${i}"]`);
+      if(tr){
+        tr.querySelector('[data-cell="payout"]').innerHTML =
+          `$${capped.toLocaleString()}${raw>1500?` <span style="color:var(--warning);font-size:10px;">(cap)</span>`:''}`;
+      }
+    }
+  });
+  const kickerTotal = kH1 + kH2;
+  document.getElementById('kickerPayout').textContent =
+    `$${kickerTotal.toLocaleString()}  ·  H1 $${kH1.toLocaleString()} / H2 $${kH2.toLocaleString()}`;
+
+  // ---- Inputs ----
+  const salary = num('dsipSalary'), target = num('dsipTarget')/100;
+  const eligH1 = num('dsipEligH1'), eligH2 = num('dsipEligH2'), eligFY = num('dsipEligFY');
+  const pfpOutcome = num('dsipPfpOutcome');
+  const yearEnd = document.getElementById('dsipYearEnd').value==='yes';
+
+  // ---- Net factors per half (Excel G9/N9 — half weights cancel, so net = sum of KPI*weight) ----
+  // recompute each half independently for the dollar roll-up
+  function halfNetFactor(which){
+    const ak = which==='H1'?'aH1':'aH2', pk = which==='H1'?'pH1':'pH2';
+    let dp=0; dsipState.depl.forEach(b=> dp += deplTierPayout(b[ak], b[pk], b.weight));
+    let ph=0; dsipState.pod.forEach(p=>{ const pl=p[pk]; if(pl>0 && Math.round((p[ak]/pl)*100)/100>=1) ph++; });
+    const pf = podLookup(ph);
+    const cf = which==='H1'?cFactorH1:cFactorH2;
+    return dp*dsipState.W_DEPL + pf*dsipState.W_POD + cf*dsipState.W_CONTRIB;
+  }
+  const netH1 = halfNetFactor('H1'), netH2 = halfNetFactor('H2');
+  const dollarH1 = salary * target * netH1 * eligH1;
+  const dollarH2 = salary * target * netH2 * eligH2;
+
+  // ---- Earnbacks ----
+  let deplEarnSum = 0;
+  dsipState.depl.forEach(b=> deplEarnSum += deplEarnback(b.aH1,b.pH1,b.aH2,b.pH2,b.weight,eligH1,eligH2,yearEnd,true));
+  const deplEarnFactor = deplEarnSum * dsipState.W_DEPL;            // Excel R7 intent: SUM × N61
+  const contribEarnFactor = contribEarnback(cAH1,cPH1,cAH2,cPH2,dsipState.W_CONTRIB,eligH1,eligH2,yearEnd,true); // R8
+  const deplEarnDollars = salary * target * deplEarnFactor;
+  const contribEarnDollars = salary * target * contribEarnFactor;
+
+  // ---- PFP + FY contribution kicker ----
+  const pfpFactor = 0 * pfpOutcome * eligFY;                       // S65=0 in plan; PFP weight zero
+  const pfpDollars = salary * target * pfpFactor;
+  const fyKickerDollars = fyContribKickerDollars(cAH1+cAH2, cPH1+cPH2, dsipState.FY_KICKER_RATE, eligFY);
+
+  // ---- Current-period summary cards (H1 / H2 / Full year) ----
+  const isFY = half==='FY';
+  const fyTotalEarly = dollarH1 + dollarH2 + deplEarnDollars + contribEarnDollars + pfpDollars + kickerTotal + fyKickerDollars;
+  const fyNetFactorEarly = netH1*eligH1 + netH2*eligH2 + deplEarnFactor + contribEarnFactor + pfpFactor;
+  const periodLabel = isFY ? 'Full year' : half;
+  const periodNet = isFY ? fyNetFactorEarly : (isH1?netH1:netH2);
+  const periodDollar = isFY ? fyTotalEarly : (isH1?dollarH1:dollarH2);
+  const periodKicker = isFY ? kickerTotal : (isH1?kH1:kH2);
+  document.getElementById('dsipSummary').innerHTML = `
+    <div class="card"><div class="kpi-label">${periodLabel} net factor</div><div class="kpi-value" style="color:#3B82F6;">${(periodNet*100).toFixed(1)}%</div><div class="kpi-foot neutral">of ${(target*100).toFixed(0)}% target</div></div>
+    <div class="card"><div class="kpi-label">Depletion contribution</div><div class="kpi-value">${(deplPayout*dsipState.W_DEPL*100).toFixed(1)}%</div><div class="kpi-foot neutral">${deplHits}/${deplTotal} brands at goal</div></div>
+    <div class="card"><div class="kpi-label">Est. ${periodLabel} payout</div><div class="kpi-value" style="color:#10B981;">$${Math.round(periodDollar).toLocaleString()}</div><div class="kpi-foot neutral">${isFY?'all components, full year':'salary × target × factor'}</div></div>
+    <div class="card"><div class="kpi-label">${periodLabel} incl. kickers</div><div class="kpi-value" style="color:#06B6D4;">$${Math.round((isFY?periodDollar:periodDollar+periodKicker)).toLocaleString()}</div><div class="kpi-foot up">${isFY?'kickers already included':'+ $'+periodKicker.toLocaleString()+' kicker'}</div></div>
+  `;
+
+  // ---- Full-year roll-up table ----
+  const rows = [
+    ['H1 base payout', `$${Math.round(dollarH1).toLocaleString()}`, 'salary × target × H1 net × H1 elig'],
+    ['H2 base payout', `$${Math.round(dollarH2).toLocaleString()}`, 'salary × target × H2 net × H2 elig'],
+    ['Depletion earnback', `$${Math.round(deplEarnDollars).toLocaleString()}`, yearEnd?'recovered missed-half depletion':'off (mid-year)'],
+    ['Contribution earnback', `$${Math.round(contribEarnDollars).toLocaleString()}`, yearEnd?'recovered missed-half contribution':'off (mid-year)'],
+    ['PFP', `$${Math.round(pfpDollars).toLocaleString()}`, 'PFP weight 0 in this plan'],
+    ['Quarterly kickers (H1+H2)', `$${kickerTotal.toLocaleString()}`, 'each quarter capped $1,500'],
+    ['FY contribution kicker', `$${Math.round(fyKickerDollars).toLocaleString()}`, `$${dsipState.FY_KICKER_RATE}/pt over 100% × FY elig`],
+  ];
+  document.getElementById('dsipRollupTable').innerHTML =
+    `<thead><tr><th>Component</th><th>Amount</th><th>Basis</th></tr></thead><tbody>${
+      rows.map(r=>`<tr><td>${r[0]}</td><td class="mono" style="color:var(--text);font-weight:600;">${r[1]}</td><td style="color:var(--text2);font-size:11.5px;">${r[2]}</td></tr>`).join('')
+    }</tbody>`;
+
+  const fyTotal = dollarH1 + dollarH2 + deplEarnDollars + contribEarnDollars + pfpDollars + kickerTotal + fyKickerDollars;
+  const fyNetFactor = netH1*eligH1 + netH2*eligH2 + deplEarnFactor + contribEarnFactor + pfpFactor;
+  document.getElementById('dsipFySummary').innerHTML = `
+    <div class="card"><div class="kpi-label">FY net factor</div><div class="kpi-value" style="color:#3B82F6;">${(fyNetFactor*100).toFixed(1)}%</div><div class="kpi-foot neutral">H1+H2+earnbacks+PFP</div></div>
+    <div class="card"><div class="kpi-label">Earnbacks total</div><div class="kpi-value" style="color:#F59E0B;">$${Math.round(deplEarnDollars+contribEarnDollars).toLocaleString()}</div><div class="kpi-foot neutral">${yearEnd?'active':'off (mid-year)'}</div></div>
+    <div class="card"><div class="kpi-label">FY contribution kicker</div><div class="kpi-value">$${Math.round(fyKickerDollars).toLocaleString()}</div><div class="kpi-foot neutral">over-100% bonus</div></div>
+    <div class="card" style="border:1px solid rgba(16,185,129,.3);"><div class="kpi-label">Full-year total</div><div class="kpi-value" style="color:#10B981;">$${Math.round(fyTotal).toLocaleString()}</div><div class="kpi-foot up">all components</div></div>
+  `;
+
+  document.getElementById('dsipRollupNote').textContent =
+    'Source-sheet note: the Year-End "Depl Earnbacks" cell (R7) references a single brand row rather than the full range, which looks like a truncation error. MacBane sums all brand earnbacks (the apparent intent). Verify the official total against your comp team before relying on it. The H2 quarterly kicker cap is applied here for consistency; the source sheet shows the $1,500 cap only on Q1/Q2.';
+
+  // dashboard mirror — now full-year
+  const dashEl = document.getElementById('dsipDashCard');
+  if(dashEl){
+    dashEl.innerHTML = `
+      <div class="kpi-label">BONUS full-year estimated payout</div>
+      <div class="kpi-value" style="color:#10B981;">$${Math.round(fyTotal).toLocaleString()}</div>
+      <div class="progress-track"><div class="progress-fill" style="width:${Math.min(100,fyNetFactor*100).toFixed(0)}%;background:linear-gradient(90deg,#10B981,#06B6D4);"></div></div>
+      <div class="kpi-foot neutral" style="margin-top:8px;">${(fyNetFactor*100).toFixed(1)}% factor · H1 $${Math.round(dollarH1).toLocaleString()} + H2 $${Math.round(dollarH2).toLocaleString()}</div>`;
+  }
+}
+
+// input delegation — names update state only (no rebuild, so typing isn't interrupted)
+document.getElementById('sec-dsip').addEventListener('input', (e)=>{
+  const t = e.target;
+  if(t.dataset.dtype){
+    const i = parseInt(t.dataset.i);
+    if(t.dataset.dtype==='deplname'){ dsipState.depl[i].name = t.value; return; }
+    if(t.dataset.dtype==='podname'){ dsipState.pod[i].name = t.value; return; }
+    const v = parseFloat(t.value)||0;
+    const half = currentHalf(), aKey = half==='H1'?'aH1':'aH2', pKey = half==='H1'?'pH1':'pH2';
+    if(t.dataset.dtype==='depl') dsipState.depl[i][aKey] = v;
+    else if(t.dataset.dtype==='deplplan') dsipState.depl[i][pKey] = v;
+    else if(t.dataset.dtype==='pod') dsipState.pod[i][aKey] = v;
+    else if(t.dataset.dtype==='podplan') dsipState.pod[i][pKey] = v;
+    else if(t.dataset.dtype==='krate') dsipState.kickers[i].rate = v;
+    else if(t.dataset.dtype==='kunits') dsipState.kickers[i].units = v;
+  }
+  renderDsip();
+});
+function rebuildDsipTables(){
+  buildDeplTableSkeleton();
+  buildPodTableSkeleton();
+  buildKickerTableSkeleton();
+  renderDsip();
+}
+document.getElementById('dsipHalf').addEventListener('change', rebuildDsipTables);
+document.getElementById('dsipYearEnd').addEventListener('change', renderDsip);
+rebuildDsipTables();
+
+/* ============================================================
+   UI POLISH — cursor spotlight, proximity lift, section motion
+   ============================================================ */
+(function(){
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const canHover = window.matchMedia && window.matchMedia('(hover:hover)').matches;
+  const introEl = document.getElementById('introScreen');
+  const introRunning = () => introEl && !introEl.classList.contains('hidden');
+
+  /* ---- Cursor spotlight + proximity rise (tiles rise as the cursor passes) ---- */
+  if(!reduce && canHover){
+    let mx = -9999, my = -9999, ticking = false;
+    const MAX_RISE = 6, RADIUS = 340;
+    function frame(){
+      ticking = false;
+      if(introRunning()) return; // don't fight the intro timeline
+      const section = document.querySelector('.section.active');
+      if(!section) return;
+      section.querySelectorAll('.card').forEach(c=>{
+        const r = c.getBoundingClientRect();
+        if(r.bottom < -40 || r.top > innerHeight + 40) return;
+        c.style.setProperty('--mx', (mx - r.left) + 'px');
+        c.style.setProperty('--my', (my - r.top) + 'px');
+        if(c.classList.contains('lift')){
+          const d = Math.hypot(mx - (r.left + r.width/2), my - (r.top + r.height/2));
+          const rise = Math.max(0, 1 - d/RADIUS);
+          c.style.transform = rise > 0.01 ? `translateY(${(-MAX_RISE*rise).toFixed(2)}px)` : '';
+        }
+      });
+    }
+    window.addEventListener('mousemove', e=>{
+      mx = e.clientX; my = e.clientY;
+      if(!ticking){ ticking = true; requestAnimationFrame(frame); }
+    }, {passive:true});
+    document.addEventListener('mouseleave', ()=>{ mx = my = -9999; requestAnimationFrame(frame); });
+  }
+
+  /* ---- Section entrance: staggered rise + progress sweep + KPI count-up ---- */
+  const counted = new Set();
+
+  function countUp(el){
+    const text = el.textContent;
+    const m = text.match(/-?[\d,]+(\.\d+)?/);
+    if(!m) return;
+    const raw = m[0];
+    const target = parseFloat(raw.replace(/,/g,''));
+    if(!isFinite(target) || target === 0) return;
+    const decimals = (raw.split('.')[1] || '').length;
+    const prefix = text.slice(0, m.index), suffix = text.slice(m.index + raw.length);
+    const start = performance.now(), dur = 700;
+    (function tick(now){
+      const p = Math.min(1, (now - start)/dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = prefix + (target*eased).toLocaleString('en-US', {minimumFractionDigits:decimals, maximumFractionDigits:decimals}) + suffix;
+      if(p < 1) requestAnimationFrame(tick);
+    })(performance.now());
+  }
+
+  window.animateSectionIn = function(sec){
+    if(reduce || !sec || introRunning()) return;
+    if(window.gsap){
+      gsap.fromTo(Array.from(sec.children), {y:14, opacity:0},
+        {y:0, opacity:1, duration:.42, stagger:.05, ease:'power3.out', overwrite:'auto', clearProps:'transform,opacity'});
+    }
+    sec.querySelectorAll('.progress-fill').forEach(f=>{
+      const w = f.style.width;
+      if(!w) return;
+      f.style.transition = 'none'; f.style.width = '0%';
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition = ''; f.style.width = w; }));
+    });
+    if(!counted.has(sec.id)){
+      counted.add(sec.id);
+      sec.querySelectorAll('.kpi-value').forEach(countUp);
+    }
+  };
+
+  // hook the router so every section change gets the entrance treatment
+  const _route = route;
+  route = function(name, navName){
+    _route(name, navName);
+    animateSectionIn(document.getElementById('sec-' + name));
+  };
+})();
+
+/* ============================================================
+   CINEMATIC INTRO SEQUENCE
+   ============================================================ */
+(function(){
+  const canvas = document.getElementById('introCanvas');
+  const ctx = canvas.getContext('2d');
+  const introScreen = document.getElementById('introScreen');
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let W, H, DPR;
+  function resize(){
+    DPR = Math.min(window.devicePixelRatio||1, 2);
+    W = canvas.width = innerWidth*DPR;
+    H = canvas.height = innerHeight*DPR;
+    canvas.style.width = innerWidth+'px';
+    canvas.style.height = innerHeight+'px';
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  /* ---- Particle field (ambient stars -> neural nodes -> convergence) ---- */
+  const COUNT = innerWidth < 600 ? 110 : 220;
+  const particles = [];
+  const cx = ()=>W/2, cy = ()=>H/2;
+  for(let i=0;i<COUNT;i++){
+    const angle = Math.random()*Math.PI*2;
+    const dist = (0.25+Math.random()*0.75) * Math.max(W,H)*0.55;
+    particles.push({
+      x: cx()+Math.cos(angle)*dist,
+      y: cy()+Math.sin(angle)*dist,
+      homeX: cx()+Math.cos(angle)*dist,
+      homeY: cy()+Math.sin(angle)*dist,
+      r: (0.6+Math.random()*1.8)*DPR,
+      baseAlpha: 0.15+Math.random()*0.5,
+      alpha: 0,
+      twinkleSpeed: 0.5+Math.random()*1.5,
+      phase: Math.random()*Math.PI*2,
+      hue: Math.random()<0.5 ? '59,130,246' : (Math.random()<0.5 ? '6,182,212' : '139,92,246'),
+      conv: 0,        // 0=ambient, 1=fully converged to center
+      vx:0, vy:0
+    });
+  }
+
+  // Sparse connection links between nearby particles for the "neural network" look
+  const links = [];
+  for(let i=0;i<particles.length;i++){
+    for(let j=i+1;j<particles.length;j++){
+      const a=particles[i], b=particles[j];
+      const d = Math.hypot(a.x-b.x, a.y-b.y);
+      if(d < Math.max(W,H)*0.09 && Math.random()<0.12){
+        links.push({a,b,alpha:0});
+      }
+    }
+  }
+
+  let t0 = performance.now();
+  let phase = 0; // driven by GSAP via global var below
+  let networkOpacity = 0;
+  let convergeAmount = 0; // 0..1 drives particles flying to center to form the image
+  let burstAmount = 0;    // 0..1 power-moment outward burst
+  let globalAlpha = 1;
+  let raf;
+
+  function draw(now){
+    raf = requestAnimationFrame(draw);
+    const dt = (now-t0)/1000; t0 = now;
+    ctx.clearRect(0,0,W,H);
+    if(globalAlpha<=0.001) return;
+
+    // links (neural network)
+    if(networkOpacity>0.01){
+      ctx.lineWidth = 1*DPR;
+      for(const l of links){
+        const d = Math.hypot(l.a.x-l.b.x, l.a.y-l.b.y);
+        const targetAlpha = Math.max(0, 1-d/(Math.max(W,H)*0.09)) * networkOpacity * 0.35;
+        l.alpha += (targetAlpha-l.alpha)*0.08;
+        if(l.alpha>0.005){
+          ctx.strokeStyle = `rgba(59,130,246,${l.alpha*globalAlpha})`;
+          ctx.beginPath();
+          ctx.moveTo(l.a.x,l.a.y);
+          ctx.lineTo(l.b.x,l.b.y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // particles
+    for(const p of particles){
+      // target alpha ramps in during phase 1-2, particles converge toward center during phase 3-4,
+      // then burst outward softly during phase 5
+      const flicker = 0.75+0.25*Math.sin(now*0.001*p.twinkleSpeed + p.phase);
+      p.alpha += (p.baseAlpha*flicker - p.alpha)*0.06;
+
+      let tx = p.homeX, ty = p.homeY;
+      if(convergeAmount>0){
+        tx = p.homeX + (cx()-p.homeX)*convergeAmount;
+        ty = p.homeY + (cy()-p.homeY)*convergeAmount;
+      }
+      if(burstAmount>0){
+        const ang = Math.atan2(p.homeY-cy(), p.homeX-cx());
+        const burstDist = burstAmount*Math.max(W,H)*0.18;
+        tx += Math.cos(ang)*burstDist;
+        ty += Math.sin(ang)*burstDist;
+      }
+      p.x += (tx-p.x)*0.09;
+      p.y += (ty-p.y)*0.09;
+
+      const rr = p.r * (1+convergeAmount*0.6);
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,rr,0,Math.PI*2);
+      ctx.fillStyle = `rgba(${p.hue},${p.alpha*globalAlpha})`;
+      ctx.fill();
+
+      if(convergeAmount>0.15){
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,rr*2.4,0,Math.PI*2);
+        ctx.fillStyle = `rgba(${p.hue},${p.alpha*globalAlpha*0.06*convergeAmount})`;
+        ctx.fill();
+      }
+    }
+  }
+  raf = requestAnimationFrame(draw);
+
+  /* ---- Hairlines (Phase 2: thin glowing lines spreading outward) ---- */
+  const hairlineLayer = document.getElementById('introHairlines');
+  const HL_COUNT = 14;
+  const hairlineEls = [];
+  for(let i=0;i<HL_COUNT;i++){
+    const el = document.createElement('div');
+    el.className='intro-hairline';
+    const angle = (360/HL_COUNT)*i + (Math.random()*10-5);
+    const len = 30+Math.random()*55;
+    el.style.width = '0%';
+    el.style.top = '50%';
+    el.style.left = '50%';
+    el.style.transform = `rotate(${angle}deg) scaleX(0)`;
+    el.dataset.finalWidth = len+'vmax';
+    el.dataset.angle = angle;
+    hairlineLayer.appendChild(el);
+    hairlineEls.push(el);
+  }
+
+  /* ---- Shards (Phase 3-4: glass shards aligning into the image) ---- */
+  const shardLayer = document.getElementById('introShardLayer');
+  const SHARD_COUNT = innerWidth<600 ? 16 : 26;
+  const shardEls = [];
+  for(let i=0;i<SHARD_COUNT;i++){
+    const el = document.createElement('div');
+    el.className='intro-shard';
+    const w = 14+Math.random()*46, h = 14+Math.random()*46;
+    el.style.width = w+'px';
+    el.style.height = h+'px';
+    el.style.left = (Math.random()*100)+'%';
+    el.style.top = (Math.random()*100)+'%';
+    el.style.transform = `translate3d(${(Math.random()*2-1)*420}px,${(Math.random()*2-1)*420}px,${Math.random()*200-100}px) rotate(${Math.random()*180-90}deg)`;
+    shardLayer.appendChild(el);
+    shardEls.push(el);
+  }
+
+  /* ---- GSAP master timeline ---- */
+  const glow = document.getElementById('introGlow');
+  const ring = document.getElementById('introPulseRing');
+  const scan = document.getElementById('introScanline');
+  const stage = document.getElementById('introImageStage');
+  const wrap = document.getElementById('introImageWrap');
+  const logoEl = document.getElementById('introLogo');
+  const fallbackEl = document.getElementById('introFallback');
+  const visibleLogo = function(){ return logoEl.style.display==='none' ? fallbackEl : logoEl; };
+
+  const appEl = document.getElementById('app');
+  const sidebarEl = document.getElementById('sidebar');
+  const mainEl = document.getElementById('main');
+  const rightPanelEl = document.getElementById('rightPanel');
+  const topbars = mainEl.querySelectorAll('.topbar');
+  const cards = mainEl.querySelectorAll('.card, .panel, .kpi, .stat-card, .grid-4 > *, .grid-3 > *, .grid-2 > *');
+
+  // App starts hidden and pre-staged for its own entrance (Phase 6)
+  appEl.style.opacity = '0';
+  gsap.set(sidebarEl, {x:-28, opacity:0});
+  gsap.set(rightPanelEl, {x:28, opacity:0});
+  gsap.set(topbars, {y:-14, opacity:0});
+  if(cards.length) gsap.set(cards, {y:22, opacity:0});
+
+  function finishIntro(){
+    cancelAnimationFrame(raf);
+    introScreen.classList.add('hidden');
+  }
+
+  if(reduceMotion){
+    // Respect reduced-motion: simple fast crossfade, skip the full sequence
+    gsap.timeline()
+      .to(visibleLogo(), {opacity:1, duration:.4})
+      .to(introScreen, {opacity:0, duration:.5, delay:.3})
+      .to(appEl, {opacity:1, duration:.4}, '-=.3')
+      .set([sidebarEl,rightPanelEl,topbars,cards], {x:0,y:0,opacity:1})
+      .add(finishIntro);
+    return;
+  }
+
+  const tl = gsap.timeline({defaults:{ease:'power2.out'}});
+
+  // PHASE 1 — Darkness, ambient particles emerge (1s)
+  tl.to({}, {duration:1, onUpdate(){ /* particles fade in via their own alpha lerp */ }});
+
+  // PHASE 2 — Data awakening: neural network lines + nodes (2s)
+  tl.to({}, {
+    duration:2,
+    onStart(){ gsap.to({}, {duration:2, onUpdate(){ networkOpacity = Math.min(1, networkOpacity+0.02); }}); }
+  });
+  tl.to(hairlineEls, {
+    scaleX:1,
+    duration:1.6,
+    ease:'power3.out',
+    stagger:0.05,
+    onStart(){
+      hairlineEls.forEach(el=>{ el.style.width = el.dataset.finalWidth; el.style.opacity = 0.55; });
+    }
+  }, '<');
+  tl.to(hairlineLayer, {opacity:1, duration:.6}, '<');
+  tl.to(hairlineLayer, {opacity:0, duration:.8}, '+=0.3');
+
+  // PHASE 3 — Intelligence formation: convergence begins, glass shards drift in with depth (2s)
+  tl.to({}, {
+    duration:2,
+    onUpdate(){ convergeAmount = Math.min(0.65, convergeAmount+0.012); }
+  });
+  tl.to(shardEls, {
+    x:0, y:0, z:0, rotation:0, opacity:0.85,
+    duration:1.7,
+    ease:'power3.out',
+    stagger:{each:0.025, from:'random'},
+    onStart(){
+      shardEls.forEach(el=>{ el.style.transform = 'translate3d(0,0,0) rotate(0deg)'; });
+    }
+  }, '<');
+  tl.to(glow, {opacity:0.55, duration:1.2}, '<0.4');
+  tl.fromTo(scan, {top:'-5%', opacity:0}, {top:'105%', opacity:0.9, duration:1.4, ease:'none'}, '<');
+
+  // PHASE 4 — Image reveal: particles fully converge, shards fade, image assembles (2s)
+  tl.to({}, {
+    duration:1.6,
+    onUpdate(){ convergeAmount = Math.min(1, convergeAmount+0.018); }
+  });
+  tl.to(shardEls, {opacity:0, duration:.6, stagger:0.01}, '<');
+  tl.fromTo(visibleLogo(), {opacity:0, filter:'blur(22px) brightness(2)', scale:0.7},
+    {opacity:1, filter:'blur(0px) brightness(1)', scale:1, duration:1.6, ease:'power3.out'}, '<0.2');
+  tl.to(wrap, {rotateY:0, rotateX:0, duration:1.6, ease:'power3.out'}, '<');
+
+  // PHASE 5 — Executive power moment: system-online pulse (1s)
+  tl.to({}, {
+    duration:0.9,
+    onStart(){
+      burstAmount = 0.001;
+    },
+    onUpdate(){ burstAmount = Math.min(1, burstAmount+0.06); },
+    onComplete(){ burstAmount = 0; }
+  });
+  tl.fromTo(ring, {opacity:0.9, width:'10px', height:'10px'},
+    {opacity:0, width:'140vmax', height:'140vmax', duration:0.9, ease:'power2.out'}, '<');
+  tl.to(glow, {opacity:0.85, duration:.3}, '<');
+  tl.to(glow, {opacity:0.25, duration:.6}, '>');
+  tl.to(visibleLogo(), {filter:'drop-shadow(0 0 90px rgba(6,182,212,.6))', duration:.4}, '<-0.5');
+
+  // PHASE 6 — Dashboard emergence: image hands off to the real app (2s)
+  tl.to(stage, {scale:0.001, opacity:0, duration:0.9, ease:'power3.inOut'}, '+=0.1');
+  tl.to(introScreen, {backgroundColor:'rgba(5,7,10,0)', duration:1.1}, '<');
+  tl.to(appEl, {opacity:1, duration:0.6}, '<0.15');
+  tl.to(sidebarEl, {x:0, opacity:1, duration:0.8, ease:'power3.out'}, '<');
+  tl.to(rightPanelEl, {x:0, opacity:1, duration:0.8, ease:'power3.out'}, '<');
+  tl.to(topbars, {y:0, opacity:1, duration:0.6, stagger:0.04, ease:'power2.out'}, '<0.1');
+  if(cards.length){
+    tl.to(cards, {y:0, opacity:1, duration:0.7, stagger:{each:0.025, from:'start'}, ease:'power3.out'}, '<0.05');
+  }
+  tl.add(finishIntro);
+})();
+
+</script>
+</body>
+</html>
